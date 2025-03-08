@@ -9,7 +9,7 @@ bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
 async def welcome(message: types.Message):
-    await message.reply("Залупа")
+    await message.reply("Welcome to the bot!")
 
 dp.message.register(welcome, Command("start"))
 
