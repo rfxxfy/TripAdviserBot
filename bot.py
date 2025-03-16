@@ -1,160 +1,63 @@
 import asyncio
-from aiogram import Bot, Dispatcher, types, F
-from aiogram.filters import Command
-from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardRemove
+from aiogram import F
+from aiogram.filters import Command, StateFilter
+from loader import dp, bot
+from handlers import start, routes, currency, info, parameters, feedback
+from states.travel_states import TravelForm
 
-with open("token.txt", "r") as f:
-    TOKEN = f.read().strip()
+# Регистрация команды /start:
+dp.message.register(start.welcome, Command("start"))
 
-bot = Bot(token=TOKEN)
-dp = Dispatcher()
+# Регистрация хендлеров:
+dp.callback_query.register(routes.route_builder, F.data == "build_route")
 
-user_routes = {}
+dp.callback_query.register(currency.currency_exchange, F.data == "currency_exchange")
 
-async def welcome(message: types.Message):
-    welcome_text = """Добро пожаловать в наш бот!
+dp.callback_query.register(info.bot_info, F.data == "bot_info")
 
-Я могу помочь вам с планированием вашего путешествия.
-Выберите интересующее вас действие:"""
+dp.callback_query.register(routes.confirm_routes_callback, F.data == "confirm_routes")
 
-    keyboard = ReplyKeyboardMarkup(
-        keyboard=[
-            [KeyboardButton(text="Построить маршрут")],
-            [KeyboardButton(text="Найти ближайшие обменники валюты с выгодным курсом")],
-            [KeyboardButton(text="Информация про бота")]
-        ],
-        resize_keyboard=True
-    )
-    
-    await message.reply(welcome_text, reply_markup=keyboard)
+dp.callback_query.register(routes.back_to_main_callback, F.data == "back_to_main")
 
-async def route_builder(message: types.Message):
-    user_id = message.from_user.id
-    
-    user_routes[user_id] = {
-        "photo": False,
-        "budget": False,
-        "sights": False
-    }
-    
-    routes_text = "Выберите типы маршрутов (можно выбрать несколько):"
-    
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(
-            text="☐ Маршрут с живописными местами",
-            callback_data="toggle_photo"
-        )],
-        [InlineKeyboardButton(
-            text="☐ Бюджетный маршрут",
-            callback_data="toggle_budget"
-        )],
-        [InlineKeyboardButton(
-            text="☐ Маршрут с достопримечательностями",
-            callback_data="toggle_sights"
-        )],
-        [InlineKeyboardButton(
-            text="✅ Подтвердить выбор",
-            callback_data="confirm_routes"
-        )],
-        [InlineKeyboardButton(
-            text="↩️ Вернуться в главное меню",
-            callback_data="back_to_main"
-        )]
-    ])
-    
-    await message.reply(routes_text, reply_markup=ReplyKeyboardRemove())
-    await message.answer("Выберите варианты:", reply_markup=keyboard)
+dp.callback_query.register(feedback.feedback_handler, F.data == "feedback")
 
-async def toggle_route_callback(callback: types.CallbackQuery):
-    user_id = callback.from_user.id
-    route_type = callback.data.replace("toggle_", "")
-    
-    user_routes[user_id][route_type] = not user_routes[user_id][route_type]
-    
-    routes = user_routes[user_id]
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(
-            text=f"{'☑' if routes['photo'] else '☐'} Маршрут с живописными местами",
-            callback_data="toggle_photo"
-        )],
-        [InlineKeyboardButton(
-            text=f"{'☑' if routes['budget'] else '☐'} Бюджетный маршрут",
-            callback_data="toggle_budget"
-        )],
-        [InlineKeyboardButton(
-            text=f"{'☑' if routes['sights'] else '☐'} Маршрут с достопримечательностями",
-            callback_data="toggle_sights"
-        )],
-        [InlineKeyboardButton(
-            text="✅ Подтвердить выбор",
-            callback_data="confirm_routes"
-        )],
-        [InlineKeyboardButton(
-            text="↩️ Вернуться в главное меню",
-            callback_data="back_to_main"
-        )]
-    ])
-    
-    await callback.message.edit_reply_markup(reply_markup=keyboard)
-    await callback.answer()
+# Регистрация хендлеров для уточнения параметров (FSM):
+dp.message.register(
+    parameters.process_location,
+    StateFilter(TravelForm.waiting_for_location),
+    F.content_type.in_(["text", "location"]),
+)
 
-async def confirm_routes_callback(callback: types.CallbackQuery):
-    user_id = callback.from_user.id
-    routes = user_routes[user_id]
-    
-    selected_routes = []
-    if routes["photo"]:
-        selected_routes.append("Маршрут с живописными местами")
-    if routes["budget"]:
-        selected_routes.append("Бюджетный маршрут")
-    if routes["sights"]:
-        selected_routes.append("Маршрут с достопримечательностями")
-    
-    if not selected_routes:
-        await callback.message.answer("Вы не выбрали ни одного маршрута. Пожалуйста, выберите хотя бы один маршрут.")
-        await callback.answer()
-        return
-    
-    response_text = "Вы выбрали следующие маршруты:\n"
-    for route in selected_routes:
-        response_text += f"- {route}\n"
-    
-    response_text += "\nПожалуйста, укажите пункт отправления для построения маршрутов."
-    
-    await callback.message.answer(response_text)
-    await callback.answer()
+dp.message.register(
+    parameters.process_budget, StateFilter(TravelForm.waiting_for_budget)
+)
 
-async def back_to_main_callback(callback: types.CallbackQuery):
-    await welcome(callback.message)
-    await callback.answer()
+dp.callback_query.register(
+    parameters.toggle_photo_locations,
+    F.data.startswith("toggle_photo_location"),
+    StateFilter(TravelForm.waiting_for_photo_locations),
+)
 
-async def currency_exchange(message: types.Message):
-    await message.reply("Функция поиска обменников валюты в разработке.", reply_markup=ReplyKeyboardRemove())
-    
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="↩️ Вернуться в главное меню", callback_data="back_to_main")]
-    ])
-    await message.answer("Выберите действие:", reply_markup=keyboard)
+dp.callback_query.register(
+    parameters.confirm_photo_locations,
+    F.data == "confirm_photo_locations",
+    StateFilter(TravelForm.waiting_for_photo_locations),
+)
 
-async def bot_info(message: types.Message):
-    await message.reply("Этот бот поможет вам спланировать путешествие, построить маршруты и найти выгодные обменники валюты.", reply_markup=ReplyKeyboardRemove())
-    
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="↩️ Вернуться в главное меню", callback_data="back_to_main")]
-    ])
-    await message.answer("Выберите действие:", reply_markup=keyboard)
+dp.callback_query.register(
+    routes.toggle_route_callback,
+    (F.data.startswith("toggle_") & ~F.data.startswith("toggle_photo_location")),
+)
 
-dp.message.register(welcome, Command("start"))
-dp.message.register(route_builder, F.text == "Построить маршрут")
-dp.message.register(currency_exchange, F.text == "Найти ближайшие обменники валюты с выгодным курсом")
-dp.message.register(bot_info, F.text == "Информация про бота")
+dp.message.register(
+    parameters.finish_parameters_collection,
+    StateFilter(TravelForm.waiting_for_photo_locations),
+)
 
-dp.callback_query.register(toggle_route_callback, F.data.startswith("toggle_"))
-dp.callback_query.register(confirm_routes_callback, F.data == "confirm_routes")
-dp.callback_query.register(back_to_main_callback, F.data == "back_to_main")
 
 async def main():
     await dp.start_polling(bot)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     asyncio.run(main())
