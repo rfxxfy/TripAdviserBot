@@ -32,6 +32,10 @@ dp.message.register(
     parameters.process_budget, StateFilter(TravelForm.waiting_for_budget)
 )
 
+dp.message.register(
+    parameters.process_days, StateFilter(TravelForm.waiting_for_days)
+)
+
 dp.callback_query.register(
     parameters.toggle_photo_locations,
     F.data.startswith("toggle_photo_location"),

@@ -15,21 +15,17 @@ async def start_parameter_collection(
     Сохраняет выбранные маршруты и формирует порядок вопросов.
     Затем запрашивает у пользователя геолокацию/адрес отправления.
     """
-    # Вероятно, стоит более оптимально переписать
-    questions_order = ["location"]
-    if selected_routes.get("budget"):
-        questions_order.append("budget")
+    questions_order = ["location","budget","days"]
     if selected_routes.get("photo"):
         questions_order.append("photo")
-    if selected_routes.get("days"):
-        questions_order.append("days")
 
     await state.update_data(selected_routes=selected_routes, questions_order=questions_order, question_index=0)
 
-    await callback.message.answer(
+    message = await callback.message.answer(
         "📍 Пожалуйста, отправьте свою геолокацию или введите адрес отправления.",
         reply_markup=get_back_to_main_keyboard()
     )
+    await state.update_data(last_message_with_keyboard_id=message.message_id)
     await state.set_state(TravelForm.waiting_for_location)
     await callback.answer()
 
@@ -41,6 +37,17 @@ async def ask_next_question(message: types.Message, state: FSMContext):
     data = await state.get_data()
     questions_order = data.get("questions_order", [])
     index = data.get("question_index", 0)
+    
+    last_keyboard_id = data.get("last_message_with_keyboard_id")
+    if last_keyboard_id:
+        try:
+            await message.bot.edit_message_reply_markup(
+                chat_id=message.chat.id,
+                message_id=last_keyboard_id,
+                reply_markup=None
+            )
+        except Exception:
+            pass
 
     if index >= len(questions_order):
         await finish_parameters_collection(message, state)
@@ -58,7 +65,6 @@ async def ask_next_question(message: types.Message, state: FSMContext):
         )
         await state.set_state(TravelForm.waiting_for_photo_locations)
     elif next_question == "days":
-        # Надо прописать про дни
         await message.answer("📆 На сколько дней вы планируете путешествовать?")
         await state.set_state(TravelForm.waiting_for_days)
     else:
@@ -134,6 +140,7 @@ async def confirm_photo_locations(
     """
     Завершает этап выбора фото‑локаций и переходит к следующему вопросу.
     """
+    await callback.message.edit_reply_markup(reply_markup=None)
     data = await state.get_data()
     question_index = data.get("question_index", 0) + 1
     await state.update_data(question_index=question_index)
@@ -151,7 +158,10 @@ async def process_days(message: types.Message, state: FSMContext):
         await message.answer("🚨 Введите корректное число для количества дней.")
         return
     await state.update_data(days=days)
-    await finish_parameters_collection(message, state)
+    data = await state.get_data()
+    question_index = data.get("question_index", 0) + 1
+    await state.update_data(question_index=question_index)
+    await ask_next_question(message, state)
 
 
 async def finish_parameters_collection(
@@ -169,12 +179,10 @@ async def finish_parameters_collection(
 
     response = "✅ Сбор параметров завершён!\n\n"
     response += f"📍 **Локация**: {location}\n"
-    if selected_routes.get("budget"):
-        response += f"💰 **Бюджет**: {budget} руб.\n"
+    response += f"💰 **Бюджет**: {budget} руб.\n"
+    response += f"📆 **Дней**: {days}\n"
     if selected_routes.get("photo"):
         response += f"📸 **Фото‑локации**: {', '.join(photo_locations) if photo_locations else 'не выбраны'}\n"
-    if selected_routes.get("days"):
-        response += f"📆 **Дней**: {days}\n"
 
     await message.answer(response, parse_mode="Markdown")
     await state.clear()

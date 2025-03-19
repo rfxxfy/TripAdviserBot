@@ -5,5 +5,6 @@ async def currency_exchange(callback: types.CallbackQuery):
     """
     Обрабатывает запрос на поиск обменников валюты.
     """
+    await callback.message.edit_reply_markup(reply_markup=None)
     await callback.message.answer("Функция поиска обменников валюты в разработке.", reply_markup=get_back_to_main_keyboard())
     await callback.answer()

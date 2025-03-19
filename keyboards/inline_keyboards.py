@@ -41,25 +41,25 @@ def get_route_types_keyboard(user_routes: dict):
         inline_keyboard=[
             [
                 InlineKeyboardButton(
-                    text=f"{'☑' if user_routes.get('photo') else '☐'} Маршрут с живописными местами",
+                    text=f"{'\u2705' if user_routes.get('photo') else '☐'} Маршрут с живописными местами",
                     callback_data="toggle_photo",
                 )
             ],
             [
                 InlineKeyboardButton(
-                    text=f"{'☑' if user_routes.get('budget') else '☐'} Бюджетный маршрут",
+                    text=f"{'\u2705' if user_routes.get('budget') else '☐'} Бюджетный маршрут",
                     callback_data="toggle_budget",
                 )
             ],
             [
                 InlineKeyboardButton(
-                    text=f"{'☑' if user_routes.get('limited_time') else '☐'} Маршрут в условиях ограниченного времени",
+                    text=f"{'\u2705' if user_routes.get('limited_time') else '☐'} Маршрут в условиях ограниченного времени",
                     callback_data="toggle_limited_time",
                 )
             ],
             [
                 InlineKeyboardButton(
-                    text="✅ Подтвердить выбор", callback_data="confirm_routes"
+                    text="\U0001F197 Подтвердить выбор", callback_data="confirm_routes"
                 )
             ],
             [
@@ -91,14 +91,25 @@ def get_photo_locations_keyboard(selected: list, options: list):
     buttons = [
         [
             InlineKeyboardButton(
-                text=f"{'☑' if option in selected else '☐'} {option}",
+                text=f"{'\u2705' if option in selected else '☐'} {option}",
                 callback_data=f"toggle_photo_location:{option}",
             )
         ]
         for option in options
     ]
-    buttons.append([InlineKeyboardButton(
-        text="✅ Подтвердить выбор", callback_data="confirm_photo_locations")])
+    buttons.append([
+        InlineKeyboardButton(
+            text="\U0001F197 Подтвердить выбор", 
+            callback_data="confirm_photo_locations"
+        )
+    ])
+    
+    buttons.append([
+        InlineKeyboardButton(
+            text="\u21A9️ Вернуться в главное меню", 
+            callback_data="back_to_main"
+        )
+    ])
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 

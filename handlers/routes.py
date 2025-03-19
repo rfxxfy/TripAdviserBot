@@ -3,14 +3,17 @@
 переключение их состояния, подтверждение выбора и переход к уточнению параметров.
 """
 from aiogram import types, F
+from handlers import parameters
+from handlers.start import welcome
 from aiogram.fsm.context import FSMContext
 from keyboards.inline_keyboards import get_route_types_keyboard
-from handlers import parameters
 
 async def route_builder(callback: types.CallbackQuery, state: FSMContext):
     """
     Инициализирует выбор маршрутов, сохраняя их в FSM.
     """
+    await callback.message.edit_reply_markup(reply_markup=None)
+    
     await state.update_data(photo=False, budget=False, limited_time=False)
 
     routes_text = "Выберите типы маршрутов (можно выбрать несколько):"
@@ -41,6 +44,8 @@ async def confirm_routes_callback(callback: types.CallbackQuery, state: FSMConte
     """
     Подтверждение выбора маршрута и переход к сбору параметров.
     """
+    await callback.message.edit_reply_markup(reply_markup=None)
+    
     routes = await state.get_data()
     selected_routes = []
 
@@ -59,10 +64,10 @@ async def confirm_routes_callback(callback: types.CallbackQuery, state: FSMConte
         await callback.answer()
         return
 
-    response_text = "Вы выбрали следующие маршруты:\n" + "\n".join(f"- {r}" for r in selected_routes)
+    response_text = "Вы выбрали следующие маршруты:\n" + "\n".join(f"- <b><u>{r}</u></b>" for r in selected_routes)
     response_text += "\n\nПереходим к уточнению параметров."
 
-    await callback.message.answer(response_text)
+    await callback.message.answer(response_text, parse_mode="HTML")
     await callback.answer()
 
     await state.update_data(selected_routes=routes)
@@ -74,6 +79,6 @@ async def back_to_main_callback(callback: types.CallbackQuery):
 
     :param callback: Callback-запрос от нажатой кнопки.
     """
-    from handlers.start import welcome
+    await callback.message.edit_reply_markup(reply_markup=None)
     await welcome(callback.message)
     await callback.answer()
