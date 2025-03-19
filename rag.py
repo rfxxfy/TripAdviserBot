@@ -8,6 +8,8 @@ PREFERENCE_MAP = {
     "парки": ("leisure", "park"),
     "рестораны": ("amenity", "restaurant"),
     "кафе": ("amenity", "cafe"),
+    "магазины": ("shop", "supermarket"),
+    "отели": ("tourism", "hotel"),
     "достопримечательности": ("tourism", "attraction"),
 }
 
@@ -18,41 +20,45 @@ class RAGService:
         self.nominatim = NominatimAPI()
 
     def get_coordinates(self, location_name: str) -> Optional[Tuple[float, float]]:
-        """
-        Определяем координаты города через Nominatim.
-        Если не найдено, возвращаем None.
-        """
         coords = self.nominatim.get_coordinates(location_name)
+        if not coords:
+            print(f"[ERROR] Не удалось получить координаты для {location_name}")
         return coords
 
     def find_pois(self, lat: float, lon: float, preferences: List[str], radius: int = 2000) -> List[dict]:
-        """
-        Ищем POI в радиусе `radius` метров от заданных координат
-        по указанным в preferences категориям (музеи, парки и т.п.).
-        """
         results = []
         if not preferences:
-            preferences = ["достопримечательности"]  # По умолчанию
+            preferences = ["достопримечательности"]
 
         for pref in preferences:
             osm_key, osm_value = PREFERENCE_MAP.get(pref, ("tourism", "attraction"))
             poi_data = self.overpass.search_poi_in_radius(lat, lon, radius, osm_key, osm_value)
-            results.extend(poi_data.get("elements", []))
+
+            if "error" in poi_data:
+                print(f"[ERROR] Ошибка Overpass: {poi_data['error']}")
+
+            # Фильтруем только объекты, у которых есть название
+            filtered_pois = [
+                el for el in poi_data.get("elements", []) if "name" in el.get("tags", {})
+            ]
+            results.extend(filtered_pois)
+
         return results
 
     def build_context(self, pois: List[dict], user_coords: Tuple[float, float]) -> str:
-        """
-        Формируем текстовый список ближайших POI (до 5 штук) с расстоянием и примерным временем пешего пути.
-        """
         if not pois:
             return "В радиусе 2 км не найдено интересных объектов по заданным предпочтениям."
 
         lines = []
-        for i, el in enumerate(pois[:5], 1):
+        for i, el in enumerate(pois[:20], 1):  # Показываем 20 объектов
             tags = el.get("tags", {})
-            name = tags.get("name", "Без названия")
+            name = tags.get("name")
 
-            # Координаты POI
+            # Проверяем, есть ли название у объекта
+            if not name:
+                continue  # Пропускаем объект без имени
+
+            lat_poi, lon_poi = 0, 0
             if el["type"] == "node":
                 lat_poi, lon_poi = el["lat"], el["lon"]
             else:
@@ -60,36 +66,36 @@ class RAGService:
                 lat_poi = center.get("lat", 0)
                 lon_poi = center.get("lon", 0)
 
-            # Рассчитываем дистанцию и время через OSRM
             route_json = self.osrm.get_route(user_coords, (lat_poi, lon_poi))
+            if route_json.get("error"):
+                print(f"[ERROR] OSRM: {route_json['error']}")
+
             if route_json.get("routes"):
                 dist_m = route_json["routes"][0]["distance"]
                 dur_s = route_json["routes"][0]["duration"]
                 dist_km = dist_m / 1000
                 dur_min = dur_s / 60
-                info = f"{dist_km:.2f} км, ~{dur_min:.0f} мин пешком"
+                info = f"{dist_km:.2f} км, ~{dur_min:.0f} мин"
             else:
                 info = "Маршрут не найден"
 
             lines.append(f"{i}. {name} — {info}")
 
-        return "Найденные места (топ-5):\n" + "\n".join(lines)
+        return "Найденные места (топ-20):\n" + "\n".join(lines)
 
     def retrieve_documents(
         self,
-        location_name: str,
+        location_name: Optional[str],
         preferences: List[str],
         lat: Optional[float] = None,
         lon: Optional[float] = None,
     ) -> str:
-        """
-        Возвращает список ближайших POI (в текстовом виде) либо сообщение об ошибке.
-        Если lat/lon переданы, используем их напрямую.
-        Иначе определяем координаты по location_name (через Nominatim).
-        """
         if lat is not None and lon is not None:
             coords = (lat, lon)
+            print(f"[INFO] Используем переданные координаты: {coords}")
         else:
+            if not location_name:
+                return "Ошибка: Не указано место для поиска."
             coords = self.get_coordinates(location_name)
             if not coords:
                 return "Не удалось найти место, попробуйте другой город."

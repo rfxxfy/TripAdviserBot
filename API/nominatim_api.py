@@ -1,24 +1,22 @@
 from geopy.geocoders import Nominatim
+from geopy.exc import GeocoderTimedOut, GeocoderServiceError
 
 class NominatimAPI:
-    def __init__(self, user_agent: str = "myGeoBot", timeout: int = 10):
-        """
-        Инициализируем geolocator из geopy.
-        - user_agent: любое произвольное название приложения
-        - timeout: время ожидания ответа
-        """
-        self.geolocator = Nominatim(user_agent=user_agent, timeout=timeout)
+    def __init__(self):
+        # Указываем User-Agent (обязательно, иначе Nominatim может заблокировать запросы)
+        self.geolocator = Nominatim(user_agent="TripAdvisorBot/1.0 (mike@example.com)")  
 
     def get_coordinates(self, location_name: str):
         """
-        Принимает название города/адреса, возвращает кортеж (lat, lon) или None, если не удалось найти.
+        Получает координаты (lat, lon) для заданного названия места.
         """
-        if not location_name:
-            return None
         try:
-            location = self.geolocator.geocode(location_name)
+            location = self.geolocator.geocode(location_name, timeout=10)
             if location:
-                return (location.latitude, location.longitude)
-        except Exception as e:
-            print(f"Nominatim error: {e}")
-        return None
+                return location.latitude, location.longitude
+            else:
+                print(f"[ERROR] Nominatim: Не найдено место '{location_name}'")
+                return None
+        except (GeocoderTimedOut, GeocoderServiceError) as e:
+            print(f"[ERROR] Nominatim: Ошибка сети - {e}")
+            return None
