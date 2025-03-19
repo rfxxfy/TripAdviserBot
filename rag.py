@@ -37,7 +37,6 @@ class RAGService:
             if "error" in poi_data:
                 print(f"[ERROR] Ошибка Overpass: {poi_data['error']}")
 
-            # Фильтруем только объекты, у которых есть название
             filtered_pois = [
                 el for el in poi_data.get("elements", []) if "name" in el.get("tags", {})
             ]
@@ -47,16 +46,15 @@ class RAGService:
 
     def build_context(self, pois: List[dict], user_coords: Tuple[float, float]) -> str:
         if not pois:
-            return "В радиусе 2 км не найдено интересных объектов по заданным предпочтениям."
+            return "В радиусе 2 км не найдено интересных объектов по заданным предпочтениям"
 
         lines = []
-        for i, el in enumerate(pois[:20], 1):  # Показываем 20 объектов
+        for i, el in enumerate(pois[:20], 1):
             tags = el.get("tags", {})
             name = tags.get("name")
 
-            # Проверяем, есть ли название у объекта
             if not name:
-                continue  # Пропускаем объект без имени
+                continue
 
             lat_poi, lon_poi = 0, 0
             if el["type"] == "node":
@@ -95,10 +93,10 @@ class RAGService:
             print(f"[INFO] Используем переданные координаты: {coords}")
         else:
             if not location_name:
-                return "Ошибка: Не указано место для поиска."
+                return "Ошибка: Не указано место для поиска"
             coords = self.get_coordinates(location_name)
             if not coords:
-                return "Не удалось найти место, попробуйте другой город."
+                return "Не удалось найти место, попробуйте другой город"
 
         pois = self.find_pois(coords[0], coords[1], preferences, radius=2000)
         return self.build_context(pois, coords)

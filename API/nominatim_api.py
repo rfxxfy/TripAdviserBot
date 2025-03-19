@@ -3,7 +3,6 @@ from geopy.exc import GeocoderTimedOut, GeocoderServiceError
 
 class NominatimAPI:
     def __init__(self):
-        # Указываем User-Agent (обязательно, иначе Nominatim может заблокировать запросы)
         self.geolocator = Nominatim(user_agent="TripAdvisorBot/1.0 (mike@example.com)")  
 
     def get_coordinates(self, location_name: str):

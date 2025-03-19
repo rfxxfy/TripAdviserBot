@@ -2,7 +2,7 @@ import requests
 
 class OSRMAPI:
     """
-    Класс для взаимодействия с публичным OSRM-сервером.
+    Класс для взаимодействия с публичным OSRM-сервером
     """
 
     BASE_URL = "https://routing.openstreetmap.de/routed-foot/route/v1"
@@ -12,8 +12,8 @@ class OSRMAPI:
 
     def get_route(self, start: tuple, end: tuple, overview: str = "full"):
         """
-        Строит маршрут между двумя точками (lat, lon) -> (lat, lon).
-        Возвращает JSON, где есть поле "routes" с расстоянием и временем.
+        Строит маршрут между двумя точками (lat, lon) -> (lat, lon)
+        Возвращает JSON, где есть поле "routes" с расстоянием и временем
         """
         start_str = f"{start[1]},{start[0]}"  # (lon,lat)
         end_str = f"{end[1]},{end[0]}"

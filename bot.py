@@ -22,7 +22,7 @@ rag_service = RAGService()
 async def start_cmd(message: types.Message):
     await message.reply(
         "Привет! Отправь мне свою геопозицию (📍) или напиши название города, "
-        "и я найду ближайшие музеи, парки и кафе."
+        "и я найду ближайшие музеи, парки и кафе"
     )
 
 
