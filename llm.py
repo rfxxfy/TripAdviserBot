@@ -1,22 +1,12 @@
 import openai
 from rag import RAGService
-from rag import RAGService
 
-rag_service = RAGService()
 rag_service = RAGService()
 
 def generate_route(departure: str, preferences: list[str]) -> str:
     """
     Генерация туристического маршрута на основе данных из RAGService и модели OpenAI
     """
-    retrieved_docs = rag_service.retrieve_documents(
-        location_name=departure,
-        preferences=preferences
-    )
-    """
-    Генерация туристического маршрута на основе данных из RAGService и модели OpenAI.
-    """
-    # Получаем "справочную информацию" (POI) через RAGService
     retrieved_docs = rag_service.retrieve_documents(
         location_name=departure,
         preferences=preferences

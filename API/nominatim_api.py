@@ -7,7 +7,7 @@ class NominatimAPI:
 
     def get_coordinates(self, location_name: str):
         """
-        Получает координаты (lat, lon) для заданного названия места.
+        Получает координаты (lat, lon) для заданного названия места
         """
         try:
             location = self.geolocator.geocode(location_name, timeout=10)
