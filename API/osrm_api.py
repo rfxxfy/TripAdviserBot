@@ -4,10 +4,12 @@ class OSRMAPI:
     BASE_URL = "https://routing.openstreetmap.de/routed-foot/route/v1"
 
     def __init__(self, mode: str = "foot"):
-        self.mode = mode
+        self.mode = mode  # Или "walking", если foot не распознаётся
 
     def get_route(self, start: tuple, end: tuple, overview: str = "full"):
-        start_str = f"{start[1]},{start[0]}"
+        # start = (lat, lon)
+        # end   = (lat, lon)
+        start_str = f"{start[1]},{start[0]}"  # (lon, lat)
         end_str = f"{end[1]},{end[0]}"
         url = f"{self.BASE_URL}/{self.mode}/{start_str};{end_str}?overview={overview}"
 

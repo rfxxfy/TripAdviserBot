@@ -1,12 +1,22 @@
 import openai
 from rag import RAGService
+from rag import RAGService
 
+rag_service = RAGService()
 rag_service = RAGService()
 
 def generate_route(departure: str, preferences: list[str]) -> str:
     """
     Генерация туристического маршрута на основе данных из RAGService и модели OpenAI.
     """
+    retrieved_docs = rag_service.retrieve_documents(
+        location_name=departure,
+        preferences=preferences
+    )
+    """
+    Генерация туристического маршрута на основе данных из RAGService и модели OpenAI.
+    """
+    # Получаем "справочную информацию" (POI) через RAGService
     retrieved_docs = rag_service.retrieve_documents(
         location_name=departure,
         preferences=preferences
@@ -19,6 +29,7 @@ def generate_route(departure: str, preferences: list[str]) -> str:
         f"{retrieved_docs}\n\n"
         "В маршруте укажи рекомендуемые остановки, краткие описания и советы для путешественника."
     )
+
 
     try:
         response = openai.ChatCompletion.create(
@@ -34,5 +45,6 @@ def generate_route(departure: str, preferences: list[str]) -> str:
     except Exception as e:
         answer = "Произошла ошибка при генерации маршрута. Пожалуйста, попробуйте ещё раз."
         print(f"Ошибка при вызове OpenAI API: {e}")
+
 
     return answer

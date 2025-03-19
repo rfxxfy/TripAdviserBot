@@ -27,12 +27,12 @@ class RAGService:
 
     def find_pois(self, lat: float, lon: float, preferences: List[str], radius: int = 2000) -> List[dict]:
         """
-        Ищем POI в радиусе radius метров от заданных координат
+        Ищем POI в радиусе `radius` метров от заданных координат
         по указанным в preferences категориям (музеи, парки и т.п.).
         """
         results = []
         if not preferences:
-            preferences = ["достопримечательности"]
+            preferences = ["достопримечательности"]  # По умолчанию
 
         for pref in preferences:
             osm_key, osm_value = PREFERENCE_MAP.get(pref, ("tourism", "attraction"))
@@ -52,6 +52,7 @@ class RAGService:
             tags = el.get("tags", {})
             name = tags.get("name", "Без названия")
 
+            # Координаты POI
             if el["type"] == "node":
                 lat_poi, lon_poi = el["lat"], el["lon"]
             else:
@@ -59,6 +60,7 @@ class RAGService:
                 lat_poi = center.get("lat", 0)
                 lon_poi = center.get("lon", 0)
 
+            # Рассчитываем дистанцию и время через OSRM
             route_json = self.osrm.get_route(user_coords, (lat_poi, lon_poi))
             if route_json.get("routes"):
                 dist_m = route_json["routes"][0]["distance"]
