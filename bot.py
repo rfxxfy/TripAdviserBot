@@ -1,12 +1,16 @@
 import asyncio
 from aiogram import F
+import openai
 from aiogram.filters import Command, StateFilter
 from loader import dp, bot
 from handlers import start, routes, currency, info, parameters, feedback
 from states.travel_states import TravelForm
+from rag import RAGService
 
 # Регистрация команды /start:
 dp.message.register(start.welcome, Command("start"))
+
+rag_service = RAGService()
 
 # Регистрация хендлеров:
 dp.callback_query.register(routes.route_builder, F.data == "build_route")
@@ -48,10 +52,36 @@ dp.callback_query.register(
     StateFilter(TravelForm.waiting_for_photo_locations),
 )
 
+async def handle_location(message: types.Message):
+    lat = message.location.latitude
+    lon = message.location.longitude
+    preferences = ["музеи", "парки", "кафе"]
+
+    text = rag_service.retrieve_documents(
+        location_name="",
+        preferences=preferences,
+        lat=lat,
+        lon=lon
+    )
+    await message.reply(text)
+
 dp.callback_query.register(
     routes.toggle_route_callback,
     (F.data.startswith("toggle_") & ~F.data.startswith("toggle_photo_location")),
 )
+
+@dp.message()
+async def handle_text(message: types.Message):
+    user_text = message.text.strip()
+    preferences = ["музеи", "парки", "кафе"]
+
+    text = rag_service.retrieve_documents(
+        location_name=user_text,
+        preferences=preferences,
+        lat=None,
+        lon=None
+    )
+    await message.reply(text)
 
 dp.message.register(
     parameters.finish_parameters_collection,
