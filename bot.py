@@ -1,16 +1,14 @@
 import asyncio
-from aiogram import F
 import openai
+from aiogram import F
 from aiogram.filters import Command, StateFilter
 from loader import dp, bot
 from handlers import start, routes, currency, info, parameters, feedback
 from states.travel_states import TravelForm
-from rag import RAGService
 
 # Регистрация команды /start:
 dp.message.register(start.welcome, Command("start"))
 
-rag_service = RAGService()
 
 # Регистрация хендлеров:
 dp.callback_query.register(routes.route_builder, F.data == "build_route")
