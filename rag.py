@@ -11,6 +11,12 @@ PREFERENCE_MAP = {
     "магазины": ("shop", "supermarket"),
     "отели": ("tourism", "hotel"),
     "достопримечательности": ("tourism", "attraction"),
+    "итальянская": ("cuisine", "italian"),
+    "русская": ("cuisine", "russian"),
+    "азиатская": ("cuisine", "asian"),
+    "фастфуд": ("cuisine", "fast_food"),
+    "вегетарианская": ("cuisine", "vegetarian"),
+    "десерты": ("cuisine", "dessert"),
 }
 
 class RAGService:

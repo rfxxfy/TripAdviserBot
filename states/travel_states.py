@@ -9,3 +9,4 @@ class TravelForm(StatesGroup):
     waiting_for_days = State()
     waiting_for_photo_locations = State()
     waiting_for_route_selection = State()
+    waiting_for_cuisine = State()

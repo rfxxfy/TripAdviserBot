@@ -2,11 +2,12 @@
 Обработчики для сбора параметров пользователя.
 """
 
+import re
 from aiogram import types
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.fsm.context import FSMContext
 from states.travel_states import TravelForm
-from keyboards.inline_keyboards import get_photo_locations_keyboard, get_back_to_main_keyboard, PHOTO_OPTIONS
+from keyboards.inline_keyboards import get_photo_locations_keyboard, get_back_to_main_keyboard, PHOTO_OPTIONS, CUISINE_OPTIONS, get_cuisine_keyboard
 
 async def start_parameter_collection(
         callback: types.CallbackQuery,
@@ -19,6 +20,8 @@ async def start_parameter_collection(
     questions_order = ["location", "budget", "days"]
     if selected_routes.get("photo"):
         questions_order.append("photo")
+    if selected_routes.get("food"):
+        questions_order.append("food")
 
     await state.update_data(
         selected_routes=selected_routes,
@@ -68,6 +71,12 @@ async def ask_next_question(message: types.Message, state: FSMContext):
             reply_markup=get_photo_locations_keyboard([], PHOTO_OPTIONS)
         )
         await state.set_state(TravelForm.waiting_for_photo_locations)
+    elif next_question == "food":
+        await message.answer(
+            "🍽️ Выберите предпочитаемые кухни:",
+            reply_markup=get_cuisine_keyboard([], CUISINE_OPTIONS)
+        )
+        await state.set_state(TravelForm.waiting_for_cuisine)
     elif next_question == "days":
         await message.answer("📆 Сколько дней вы планируете путешествовать?")
         await state.set_state(TravelForm.waiting_for_days)
@@ -76,20 +85,44 @@ async def ask_next_question(message: types.Message, state: FSMContext):
 
 
 async def process_location(message: types.Message, state: FSMContext):
-    """
-    Сохраняет геопозицию, переданную в виде текста или координат,
-    и переходит к следующему вопросу.
-    Обработка происходит только если бот ожидает геопозицию.
-    """
     current_state = await state.get_state()
     if current_state != TravelForm.waiting_for_location:
         return
-
+    
     if message.location:
         location = f"{message.location.latitude}, {message.location.longitude}"
-    else:
-        location = message.text
-
+        await state.update_data(location=location)
+        data = await state.get_data()
+        question_index = data.get("question_index", 0) + 1
+        await state.update_data(question_index=question_index)
+        await ask_next_question(message, state)
+        return
+    
+    text_input = message.text.strip()
+    
+    decimal_pattern = r'^(-?\d+(\.\d+)?)[,\s]+(-?\d+(\.\d+)?)$'
+    decimal_match = re.match(decimal_pattern, text_input)
+    
+    if decimal_match:
+        try:
+            lat = float(decimal_match.group(1).replace(',', '.'))
+            lon = float(decimal_match.group(2).replace(',', '.'))
+            
+            if not (-90 <= lat <= 90) or not (-180 <= lon <= 180):
+                await message.answer("🚨 Ошибка: координаты вне допустимого диапазона.\nШирота должна быть от -90 до 90, долгота от -180 до 180.")
+                return
+            
+            location = f"{lat}, {lon}"
+            await state.update_data(location=location)
+            data = await state.get_data()
+            question_index = data.get("question_index", 0) + 1
+            await state.update_data(question_index=question_index)
+            await ask_next_question(message, state)
+            return
+        except ValueError:
+            pass
+    
+    location = text_input
     await state.update_data(location=location)
     data = await state.get_data()
     question_index = data.get("question_index", 0) + 1
@@ -103,6 +136,9 @@ async def process_budget(message: types.Message, state: FSMContext):
     """
     try:
         budget = float(message.text)
+        if budget <= 0:
+            await message.answer("🚨 Вы ввели неверный бюджет. Попробуйте ещё раз.")
+            return
     except ValueError:
         await message.answer("🚨 Введите корректное число для бюджета.")
         return
@@ -142,9 +178,7 @@ async def toggle_photo_locations(callback: types.CallbackQuery, state: FSMContex
             pass
         else:
             raise
-
     await callback.answer("Обновлено!")
-
 
 async def confirm_photo_locations(callback: types.CallbackQuery, state: FSMContext):
     """
@@ -157,6 +191,48 @@ async def confirm_photo_locations(callback: types.CallbackQuery, state: FSMConte
     await callback.answer("Выбор фото‑локаций подтверждён!")
     await ask_next_question(callback.message, state)
 
+async def toggle_cuisine(callback: types.CallbackQuery, state: FSMContext):
+    """
+    Обрабатывает изменение выбора кухонь.
+    """
+    data = await state.get_data()
+    selected = data.get("cuisine_options", [])
+    if ":" not in callback.data:
+        await callback.answer("Ошибка в callback data")
+        return
+    action, option = callback.data.split(":", 1)
+    if action != "toggle_cuisine":
+        await callback.answer("Ошибка в обработке callback.")
+        return
+
+    if option in selected:
+        selected.remove(option)
+    else:
+        selected.append(option)
+
+    await state.update_data(cuisine_options=selected)
+    try:
+        await callback.message.edit_reply_markup(
+            reply_markup=get_cuisine_keyboard(selected, CUISINE_OPTIONS)
+        )
+    except TelegramBadRequest as e:
+        if "message is not modified" in str(e):
+            pass
+        else:
+            raise
+    await callback.answer("Обновлено!")
+
+
+async def confirm_cuisine(callback: types.CallbackQuery, state: FSMContext):
+    """
+    Завершает этап выбора кухонь и переходит к следующему вопросу.
+    """
+    await callback.message.edit_reply_markup(reply_markup=None)
+    data = await state.get_data()
+    question_index = data.get("question_index", 0) + 1
+    await state.update_data(question_index=question_index)
+    await callback.answer("Выбор кухонь подтверждён!")
+    await ask_next_question(callback.message, state)
 
 async def process_days(message: types.Message, state: FSMContext):
     """
@@ -164,6 +240,9 @@ async def process_days(message: types.Message, state: FSMContext):
     """
     try:
         days = int(message.text)
+        if days <= 0:
+            await message.answer("🚨 Количество дней должно быть положительным числом. Попробуйте ещё раз.")
+            return
     except ValueError:
         await message.answer("🚨 Введите корректное число для количества дней.")
         return
@@ -187,6 +266,7 @@ async def finish_parameters_collection(message: types.Message, state: FSMContext
     location = data.get("location", "не указана")
     budget = data.get("budget", "не указан")
     photo_locations = data.get("photo_locations", [])
+    cuisine_options = data.get("cuisine_options", [])
     days = data.get("days", "не указано")
 
     response = "✅ Сбор параметров завершён!\n\n"
@@ -195,6 +275,8 @@ async def finish_parameters_collection(message: types.Message, state: FSMContext
     response += f"📆 **Дней**: {days}\n"
     if selected_routes.get("photo"):
         response += f"📸 **Фото‑локации**: {', '.join(photo_locations) if photo_locations else 'не выбраны'}\n"
+    if selected_routes.get("food"):
+        response += f"🍽️ **Кухни**: {', '.join(cuisine_options) if cuisine_options else 'не выбраны'}\n"
     response += f"\nОжидайте выполнения запроса ⏳"
 
     await message.answer(response, parse_mode="Markdown")

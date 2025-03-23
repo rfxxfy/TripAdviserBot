@@ -14,7 +14,7 @@ async def route_builder(callback: types.CallbackQuery, state: FSMContext):
     """
     await callback.message.edit_reply_markup(reply_markup=None)
     
-    await state.update_data(photo=False, budget=False, limited_time=False)
+    await state.update_data(photo=False, budget=False, limited_time=False, food = False)
 
     routes_text = "Выберите типы маршрутов (можно выбрать несколько):"
     data = await state.get_data()
@@ -51,10 +51,8 @@ async def confirm_routes_callback(callback: types.CallbackQuery, state: FSMConte
 
     if routes.get("photo"):
         selected_routes.append("Маршрут с живописными местами")
-    if routes.get("budget"):
-        selected_routes.append("Бюджетный маршрут")
-    if routes.get("limited_time"):
-        selected_routes.append("Маршрут в условиях ограниченного времени")
+    if routes.get("food"):
+        selected_routes.append("Маршрут с питанием")
 
     if not selected_routes:
         await callback.message.answer(

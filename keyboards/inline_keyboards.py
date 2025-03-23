@@ -1,6 +1,7 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 PHOTO_OPTIONS = ["Природные", "Городские пейзажи", "Памятники", "Музеи"]
+CUISINE_OPTIONS = ["Итальянская", "Русская", "Азиатская", "Фастфуд", "Вегетарианская", "Десерты"]
 
 
 def get_main_menu_keyboard():
@@ -47,14 +48,8 @@ def get_route_types_keyboard(user_routes: dict):
             ],
             [
                 InlineKeyboardButton(
-                    text=f"{'\u2705' if user_routes.get('budget') else '☐'} Бюджетный маршрут",
-                    callback_data="toggle_budget",
-                )
-            ],
-            [
-                InlineKeyboardButton(
-                    text=f"{'\u2705' if user_routes.get('limited_time') else '☐'} Маршрут в условиях ограниченного времени",
-                    callback_data="toggle_limited_time",
+                    text=f"{'\u2705' if user_routes.get('food') else '☐'} Маршрут с питанием",
+                    callback_data="toggle_food",
                 )
             ],
             [
@@ -101,6 +96,37 @@ def get_photo_locations_keyboard(selected: list, options: list):
         InlineKeyboardButton(
             text="\U0001F197 Подтвердить выбор", 
             callback_data="confirm_photo_locations"
+        )
+    ])
+    
+    buttons.append([
+        InlineKeyboardButton(
+            text="\u21A9️ Вернуться в главное меню", 
+            callback_data="back_to_main"
+        )
+    ])
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+def get_cuisine_keyboard(selected: list, options: list):
+    """
+    Формирует клавиатуру для мультивыбора кухонь.
+    
+    :param selected: Список уже выбранных пользователем кухонь.
+    :param options: Список доступных вариантов кухонь.
+    """
+    buttons = [
+        [
+            InlineKeyboardButton(
+                text=f"{'\u2705' if option in selected else '☐'} {option}",
+                callback_data=f"toggle_cuisine:{option}",
+            )
+        ]
+        for option in options
+    ]
+    buttons.append([
+        InlineKeyboardButton(
+            text="\U0001F197 Подтвердить выбор", 
+            callback_data="confirm_cuisine"
         )
     ])
     

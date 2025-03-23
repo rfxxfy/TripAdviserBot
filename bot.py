@@ -18,7 +18,11 @@ dp.callback_query.register(routes.back_to_main_callback, F.data == "back_to_main
 dp.callback_query.register(feedback.feedback_handler, F.data == "feedback")
 dp.callback_query.register(
     routes.toggle_route_callback,
-    (F.data.startswith("toggle_") & ~F.data.startswith("toggle_photo_location"))
+    (
+        F.data.startswith("toggle_")
+        & ~F.data.startswith("toggle_photo_location")
+        & ~F.data.startswith("toggle_cuisine")
+    )
 )
 
 # Регистрация хендлеров для состояний (FSM) сбора параметров.
@@ -45,9 +49,19 @@ dp.callback_query.register(
     F.data == "confirm_photo_locations",
     StateFilter(TravelForm.waiting_for_photo_locations)
 )
+dp.callback_query.register(
+    parameters.toggle_cuisine,
+    F.data.startswith("toggle_cuisine"),
+    StateFilter(TravelForm.waiting_for_cuisine)
+)
+dp.callback_query.register(
+    parameters.confirm_cuisine,
+    F.data == "confirm_cuisine",
+    StateFilter(TravelForm.waiting_for_cuisine)
+)
 dp.message.register(
     parameters.finish_parameters_collection,
-    StateFilter(TravelForm.waiting_for_photo_locations)
+    StateFilter(TravelForm.waiting_for_photo_locations, TravelForm.waiting_for_cuisine)
 )
 
 dp.message.register(fallback.fallback_message_handler)
