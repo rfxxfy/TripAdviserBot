@@ -4,6 +4,7 @@
 
 import re
 from aiogram import types
+from loader import rag_service
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.fsm.context import FSMContext
 from states.travel_states import TravelForm
@@ -122,8 +123,14 @@ async def process_location(message: types.Message, state: FSMContext):
         except ValueError:
             pass
     
+    coords = rag_service.get_coordinates(text_input)
+    
+    if not coords:
+        await message.answer("🚨 Не удалось найти указанное место. Пожалуйста, введите более точное название или координаты.")
+        return
+    
     location = text_input
-    await state.update_data(location=location)
+    await state.update_data(location=location, coords=coords)
     data = await state.get_data()
     question_index = data.get("question_index", 0) + 1
     await state.update_data(question_index=question_index)

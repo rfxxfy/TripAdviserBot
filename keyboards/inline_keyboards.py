@@ -42,13 +42,13 @@ def get_route_types_keyboard(user_routes: dict):
         inline_keyboard=[
             [
                 InlineKeyboardButton(
-                    text=f"{'\u2705' if user_routes.get('photo') else '☐'} Маршрут с живописными местами",
+                    text=f"{chr(0x2705) if user_routes.get('photo') else '☐'} Маршрут с живописными местами",
                     callback_data="toggle_photo",
                 )
             ],
             [
                 InlineKeyboardButton(
-                    text=f"{'\u2705' if user_routes.get('food') else '☐'} Маршрут с питанием",
+                    text=f"{chr(0x2705) if user_routes.get('food') else '☐'} Маршрут с питанием",
                     callback_data="toggle_food",
                 )
             ],
@@ -86,7 +86,7 @@ def get_photo_locations_keyboard(selected: list, options: list):
     buttons = [
         [
             InlineKeyboardButton(
-                text=f"{'\u2705' if option in selected else '☐'} {option}",
+                text=f"{chr(0x2705) if option in selected else '☐'} {option}",
                 callback_data=f"toggle_photo_location:{option}",
             )
         ]
@@ -101,7 +101,7 @@ def get_photo_locations_keyboard(selected: list, options: list):
     
     buttons.append([
         InlineKeyboardButton(
-            text="\u21A9️ Вернуться в главное меню", 
+            text="↩️ Вернуться в главное меню", 
             callback_data="back_to_main"
         )
     ])
@@ -117,7 +117,7 @@ def get_cuisine_keyboard(selected: list, options: list):
     buttons = [
         [
             InlineKeyboardButton(
-                text=f"{'\u2705' if option in selected else '☐'} {option}",
+                text=f"{chr(0x2705) if option in selected else '☐'} {option}",
                 callback_data=f"toggle_cuisine:{option}",
             )
         ]
@@ -132,7 +132,7 @@ def get_cuisine_keyboard(selected: list, options: list):
     
     buttons.append([
         InlineKeyboardButton(
-            text="\u21A9️ Вернуться в главное меню", 
+            text="↩️ Вернуться в главное меню", 
             callback_data="back_to_main"
         )
     ])
