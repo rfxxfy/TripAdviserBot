@@ -1,5 +1,5 @@
 """
-Обработчики для сбора параметров пользователя.
+Обработчики для сбора параметров пользователя
 """
 
 import re
@@ -9,14 +9,15 @@ from aiogram.exceptions import TelegramBadRequest
 from aiogram.fsm.context import FSMContext
 from states.travel_states import TravelForm
 from keyboards.inline_keyboards import get_photo_locations_keyboard, get_back_to_main_keyboard, PHOTO_OPTIONS, CUISINE_OPTIONS, get_cuisine_keyboard
+from llm import generate_route
 
 async def start_parameter_collection(
         callback: types.CallbackQuery,
         selected_routes: dict,
         state: FSMContext):
     """
-    Сохраняет выбранные маршруты и формирует порядок вопросов.
-    Затем запрашивает у пользователя геопозицию/адрес отправления.
+    Сохраняет выбранные маршруты и формирует порядок вопросов
+    Затем запрашивает у пользователя геопозицию/адрес отправления
     """
     questions_order = ["location", "budget", "days"]
     if selected_routes.get("photo"):
@@ -31,7 +32,7 @@ async def start_parameter_collection(
     )
 
     message = await callback.message.answer(
-        "📍 Пожалуйста, отправьте свою геопозицию или введите адрес отправления.",
+        "📍 Пожалуйста, отправьте свою геопозицию или введите адрес отправления",
         reply_markup=get_back_to_main_keyboard()
     )
     await state.update_data(last_message_with_keyboard_id=message.message_id)
@@ -41,7 +42,7 @@ async def start_parameter_collection(
 
 async def ask_next_question(message: types.Message, state: FSMContext):
     """
-    Задает следующий вопрос пользователю на основе сохраненного порядка вопросов.
+    Задает следующий вопрос пользователю на основе сохраненного порядка вопросов
     """
     data = await state.get_data()
     questions_order = data.get("questions_order", [])
@@ -139,7 +140,7 @@ async def process_location(message: types.Message, state: FSMContext):
 
 async def process_budget(message: types.Message, state: FSMContext):
     """
-    Сохраняет введенный бюджет и переходит к следующему вопросу.
+    Сохраняет введенный бюджет и переходит к следующему вопросу
     """
     try:
         budget = float(message.text)
@@ -158,7 +159,7 @@ async def process_budget(message: types.Message, state: FSMContext):
 
 async def toggle_photo_locations(callback: types.CallbackQuery, state: FSMContext):
     """
-    Обрабатывает изменение выбора фото‑локаций.
+    Обрабатывает изменение выбора фото‑локаций
     """
     data = await state.get_data()
     selected = data.get("photo_locations", [])
@@ -232,7 +233,7 @@ async def toggle_cuisine(callback: types.CallbackQuery, state: FSMContext):
 
 async def confirm_cuisine(callback: types.CallbackQuery, state: FSMContext):
     """
-    Завершает этап выбора кухонь и переходит к следующему вопросу.
+    Завершает этап выбора кухонь и переходит к следующему вопросу
     """
     await callback.message.edit_reply_markup(reply_markup=None)
     data = await state.get_data()
@@ -243,7 +244,7 @@ async def confirm_cuisine(callback: types.CallbackQuery, state: FSMContext):
 
 async def process_days(message: types.Message, state: FSMContext):
     """
-    Сохраняет введенное количество дней и переходит к завершению сбора параметров.
+    Сохраняет введенное количество дней и переходит к завершению сбора параметров
     """
     try:
         days = int(message.text)
@@ -259,14 +260,13 @@ async def process_days(message: types.Message, state: FSMContext):
     await state.update_data(question_index=question_index)
     await ask_next_question(message, state)
 
-
 async def finish_parameters_collection(message: types.Message, state: FSMContext):
     """
     Завершает сбор параметров:
-    1. Выводит собранные данные.
-    2. Вызывает RAG-сервис для поиска POI по полученной геопозиции.
-    3. Отправляет результаты пользователю.
-    4. Очищает состояние FSM.
+    1. Выводит собранные данные
+    2. Вызывает RAG-сервис для поиска POI по полученной геопозиции
+    3. Отправляет результаты пользователю
+    4. Очищает состояние FSM
     """
     data = await state.get_data()
     selected_routes = data.get("selected_routes", {})
@@ -276,29 +276,29 @@ async def finish_parameters_collection(message: types.Message, state: FSMContext
     cuisine_options = data.get("cuisine_options", [])
     days = data.get("days", "не указано")
 
-    response = "✅ Сбор параметров завершён!\n\n"
-    response += f"📍 **Локация**: {location}\n"
-    response += f"💰 **Бюджет**: {budget} руб.\n"
-    response += f"📆 **Дней**: {days}\n"
+    response = (
+        "✅ Сбор параметров завершён!\n\n"
+        f"📍 Локация: {location}\n"
+        f"💰 Бюджет: {budget} руб.\n"
+        f"📆 Дней: {days}\n"
+    )
     if selected_routes.get("photo"):
-        response += f"📸 **Фото‑локации**: {', '.join(photo_locations) if photo_locations else 'не выбраны'}\n"
+        response += f"📸 Фото‑локации: {', '.join(photo_locations) if photo_locations else 'не выбраны'}\n"
     if selected_routes.get("food"):
-        response += f"🍽️ **Кухни**: {', '.join(cuisine_options) if cuisine_options else 'не выбраны'}\n"
-    response += f"\nОжидайте выполнения запроса ⏳"
+        response += f"🍽️ Кухни: {', '.join(cuisine_options) if cuisine_options else 'не выбраны'}\n"
+    response += "\nОжидайте выполнения запроса ⏳"
 
     await message.answer(response, parse_mode="Markdown")
 
-    from loader import rag_service
-
-    preferences = ["музеи", "парки", "кафе"]
-    if "," in location:
+    preferences_for_rag = ["музеи", "парки", "кафе"]
+    if "," in str(location):
         try:
             lat_str, lon_str = location.split(",")
             lat = float(lat_str.strip())
             lon = float(lon_str.strip())
             poi_text = rag_service.retrieve_documents(
                 location_name="",
-                preferences=preferences,
+                preferences=preferences_for_rag,
                 lat=lat,
                 lon=lon
             )
@@ -307,10 +307,34 @@ async def finish_parameters_collection(message: types.Message, state: FSMContext
     else:
         poi_text = rag_service.retrieve_documents(
             location_name=location,
-            preferences=preferences,
+            preferences=preferences_for_rag,
             lat=None,
             lon=None
         )
 
-    await message.answer(poi_text)
+    # выводим список найденных мест (как сейчас), УБРАТЬ ПОСЛЕ!!!!--------------
+    #await message.answer(poi_text) <- poi top 20 
+    
+    user_preferences = photo_locations + cuisine_options
+
+    route_types = []
+    if selected_routes.get("photo"):
+        route_types.append("живописными местами")
+    if selected_routes.get("food"):
+        route_types.append("питанием")
+
+    route_type_str = " и ".join(route_types) if route_types else "обычный"
+
+    llm_reply = generate_route(
+        departure=str(location),
+        preferences=user_preferences,
+        route_type=route_type_str,
+        days=int(days),
+        budget=float(budget)
+)
+
+
+    await message.answer(llm_reply)
+
     await state.clear()
+
