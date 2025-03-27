@@ -3,3 +3,5 @@ tokens
 __pycache__
 *.pyc
 *.pyo
+db.env
+database/db_config.py

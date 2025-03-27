@@ -6,6 +6,7 @@ from aiogram import types, F
 from handlers import parameters
 from handlers.start import welcome
 from aiogram.fsm.context import FSMContext
+from database.db import save_route_selection
 from keyboards.inline_keyboards import get_route_types_keyboard
 
 async def route_builder(callback: types.CallbackQuery, state: FSMContext):
@@ -47,12 +48,24 @@ async def confirm_routes_callback(callback: types.CallbackQuery, state: FSMConte
     await callback.message.edit_reply_markup(reply_markup=None)
     
     routes = await state.get_data()
+    session_id = routes.get("session_id")
     selected_routes = []
 
     if routes.get("photo"):
         selected_routes.append("Маршрут с живописными местами")
+        if session_id:
+            save_route_selection(session_id, "photo", True)
+    else:
+        if session_id:
+            save_route_selection(session_id, "photo", False)
+            
     if routes.get("food"):
         selected_routes.append("Маршрут с питанием")
+        if session_id:
+            save_route_selection(session_id, "food", True)
+    else:
+        if session_id:
+            save_route_selection(session_id, "food", False)
 
     if not selected_routes:
         await callback.message.answer(

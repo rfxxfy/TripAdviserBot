@@ -4,6 +4,7 @@ from aiogram.filters import Command, StateFilter
 from loader import dp, bot
 from handlers import start, routes, currency, info, parameters, feedback, fallback
 from commands import set_bot_commands
+from middlewares.db_middleware import DatabaseMiddleware
 from states.travel_states import TravelForm
 
 # Регистрация команды /start – запуск диалога с пользователем.
@@ -67,6 +68,8 @@ dp.message.register(
 dp.message.register(fallback.fallback_message_handler)
 
 async def main():
+    dp.message.middleware(DatabaseMiddleware())
+    dp.callback_query.middleware(DatabaseMiddleware())
     await set_bot_commands()
     await dp.start_polling(bot)
 
