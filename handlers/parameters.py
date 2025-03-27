@@ -90,9 +90,19 @@ async def process_location(message: types.Message, state: FSMContext):
     if current_state != TravelForm.waiting_for_location:
         return
     
+    data = await state.get_data()
+    session_id = data.get("session_id")
+    
     if message.location:
-        location = f"{message.location.latitude}, {message.location.longitude}"
+        lat = message.location.latitude
+        lon = message.location.longitude
+        location = f"{lat}, {lon}"
         await state.update_data(location=location)
+        
+        if session_id:
+            from database.db import save_location
+            save_location(session_id, "Координаты", lat, lon)
+        
         data = await state.get_data()
         question_index = data.get("question_index", 0) + 1
         await state.update_data(question_index=question_index)
@@ -107,7 +117,7 @@ async def process_location(message: types.Message, state: FSMContext):
     if decimal_match:
         try:
             lat = float(decimal_match.group(1).replace(',', '.'))
-            lon = float(decimal_match.group(2).replace(',', '.'))
+            lon = float(decimal_match.group(3).replace(',', '.'))
             
             if not (-90 <= lat <= 90) or not (-180 <= lon <= 180):
                 await message.answer("🚨 Ошибка: координаты вне допустимого диапазона.\nШирота должна быть от -90 до 90, долгота от -180 до 180.")
@@ -115,6 +125,11 @@ async def process_location(message: types.Message, state: FSMContext):
             
             location = f"{lat}, {lon}"
             await state.update_data(location=location)
+            
+            if session_id:
+                from database.db import save_location
+                save_location(session_id, text_input, lat, lon)
+            
             data = await state.get_data()
             question_index = data.get("question_index", 0) + 1
             await state.update_data(question_index=question_index)
@@ -131,6 +146,11 @@ async def process_location(message: types.Message, state: FSMContext):
     
     location = text_input
     await state.update_data(location=location, coords=coords)
+    
+    if session_id:
+        from database.db import save_location
+        save_location(session_id, text_input, coords[0], coords[1])
+    
     data = await state.get_data()
     question_index = data.get("question_index", 0) + 1
     await state.update_data(question_index=question_index)
@@ -192,7 +212,16 @@ async def confirm_photo_locations(callback: types.CallbackQuery, state: FSMConte
     Завершает этап выбора фото‑локаций и переходит к следующему вопросу.
     """
     await callback.message.edit_reply_markup(reply_markup=None)
+    
     data = await state.get_data()
+    photo_locations = data.get("photo_locations", [])
+    session_id = data.get("session_id")
+    
+    if session_id:
+        from database.db import save_photo_location
+        for location_type in photo_locations:
+            save_photo_location(session_id, location_type)
+    
     question_index = data.get("question_index", 0) + 1
     await state.update_data(question_index=question_index)
     await callback.answer("Выбор фото‑локаций подтверждён!")
@@ -235,7 +264,16 @@ async def confirm_cuisine(callback: types.CallbackQuery, state: FSMContext):
     Завершает этап выбора кухонь и переходит к следующему вопросу.
     """
     await callback.message.edit_reply_markup(reply_markup=None)
+    
     data = await state.get_data()
+    cuisine_options = data.get("cuisine_options", [])
+    session_id = data.get("session_id")
+    
+    if session_id:
+        from database.db import save_cuisine
+        for cuisine_type in cuisine_options:
+            save_cuisine(session_id, cuisine_type)
+    
     question_index = data.get("question_index", 0) + 1
     await state.update_data(question_index=question_index)
     await callback.answer("Выбор кухонь подтверждён!")
@@ -269,12 +307,18 @@ async def finish_parameters_collection(message: types.Message, state: FSMContext
     4. Очищает состояние FSM.
     """
     data = await state.get_data()
+    session_id = data.get("session_id")
     selected_routes = data.get("selected_routes", {})
     location = data.get("location", "не указана")
     budget = data.get("budget", "не указан")
     photo_locations = data.get("photo_locations", [])
     cuisine_options = data.get("cuisine_options", [])
     days = data.get("days", "не указано")
+    
+    if session_id:
+        from database.db import save_route_parameters, complete_session
+        save_route_parameters(session_id, budget, days)
+        complete_session(session_id)
 
     response = "✅ Сбор параметров завершён!\n\n"
     response += f"📍 **Локация**: {location}\n"
