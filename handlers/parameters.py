@@ -9,7 +9,7 @@ from aiogram.exceptions import TelegramBadRequest
 from aiogram.fsm.context import FSMContext
 from states.travel_states import TravelForm
 from keyboards.inline_keyboards import get_photo_locations_keyboard, get_back_to_main_keyboard, PHOTO_OPTIONS, CUISINE_OPTIONS, get_cuisine_keyboard
-from llm import generate_route
+from LLM.llm import generate_route
 
 async def start_parameter_collection(
         callback: types.CallbackQuery,
