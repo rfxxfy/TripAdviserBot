@@ -175,7 +175,7 @@ async def process_budget(message: types.Message, state: FSMContext):
     """
     try:
         budget = float(message.text)
-        if budget <= 0:
+        if budget < 0:
             await message.answer("🚨 Вы ввели неверный бюджет. Попробуйте ещё раз.")
             return
     except ValueError:
@@ -202,10 +202,16 @@ async def toggle_photo_locations(callback: types.CallbackQuery, state: FSMContex
         await callback.answer("Ошибка в обработке callback.")
         return
 
-    if option in selected:
-        selected.remove(option)
+    if option == "all":
+        if len(selected) == len(PHOTO_OPTIONS):
+            selected = []
+        else:
+            selected = PHOTO_OPTIONS.copy()
     else:
-        selected.append(option)
+        if option in selected:
+            selected.remove(option)
+        else:
+            selected.append(option)
 
     await state.update_data(photo_locations=selected)
     try:
@@ -254,10 +260,16 @@ async def toggle_cuisine(callback: types.CallbackQuery, state: FSMContext):
         await callback.answer("Ошибка в обработке callback.")
         return
 
-    if option in selected:
-        selected.remove(option)
+    if option == "all":
+        if len(selected) == len(CUISINE_OPTIONS):
+            selected = []
+        else:
+            selected = CUISINE_OPTIONS.copy()
     else:
-        selected.append(option)
+        if option in selected:
+            selected.remove(option)
+        else:
+            selected.append(option)
 
     await state.update_data(cuisine_options=selected)
     try:
