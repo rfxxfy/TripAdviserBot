@@ -178,6 +178,8 @@ async def process_budget(message: types.Message, state: FSMContext):
         if budget < 0:
             await message.answer("🚨 Вы ввели неверный бюджет. Попробуйте ещё раз.")
             return
+        if budget > 10 ** 6:
+            budget = 10 ** 6
     except ValueError:
         await message.answer("🚨 Введите корректное число для бюджета.")
         return
@@ -311,6 +313,9 @@ async def process_days(message: types.Message, state: FSMContext):
         days = int(message.text)
         if days <= 0:
             await message.answer("🚨 Количество дней должно быть положительным числом. Попробуйте ещё раз.")
+            return
+        if days > 7:
+            await message.answer("Наш бот сейчас умеет планировать путешествия длительностью до 7 дней. Введите, пожалуйста, целое положительное число не больше 7.")
             return
     except ValueError:
         await message.answer("🚨 Введите корректное число для количества дней.")

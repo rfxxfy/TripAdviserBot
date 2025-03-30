@@ -96,7 +96,7 @@ def get_photo_locations_keyboard(selected: list, options: list):
     
     buttons.append([
         InlineKeyboardButton(
-            text=f"{'\u2705 Снять все отметки' if all_selected else '☐ Выбрать все'}",
+            text=f"{chr(0x2705) if all_selected else '☐'} {'Снять все отметки' if all_selected else 'Выбрать все'}",
             callback_data="toggle_photo_location:all"
         )
     ])
@@ -136,7 +136,7 @@ def get_cuisine_keyboard(selected: list, options: list):
     
     buttons.append([
         InlineKeyboardButton(
-            text=f"{'\u2705 Снять все отметки' if all_selected else '☐ Выбрать все'}",
+            text=f"{chr(0x2705) if all_selected else '☐'} {'Снять все отметки' if all_selected else 'Выбрать все'}",
             callback_data="toggle_cuisine:all"
         )
     ])
