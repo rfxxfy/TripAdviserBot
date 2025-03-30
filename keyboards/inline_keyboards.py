@@ -79,7 +79,6 @@ def get_back_to_main_keyboard():
 def get_photo_locations_keyboard(selected: list, options: list):
     """
     Формирует клавиатуру для мультивыбора фото-локаций.
-
     :param selected: Список уже выбранных пользователем фото-локаций.
     :param options: Список доступных вариантов фото-локаций.
     """
@@ -92,6 +91,16 @@ def get_photo_locations_keyboard(selected: list, options: list):
         ]
         for option in options
     ]
+    
+    all_selected = len(selected) == len(options)
+    
+    buttons.append([
+        InlineKeyboardButton(
+            text=f"{'\u2705 Снять все отметки' if all_selected else '☐ Выбрать все'}",
+            callback_data="toggle_photo_location:all"
+        )
+    ])
+    
     buttons.append([
         InlineKeyboardButton(
             text="\U0001F197 Подтвердить выбор", 
@@ -110,7 +119,6 @@ def get_photo_locations_keyboard(selected: list, options: list):
 def get_cuisine_keyboard(selected: list, options: list):
     """
     Формирует клавиатуру для мультивыбора кухонь.
-    
     :param selected: Список уже выбранных пользователем кухонь.
     :param options: Список доступных вариантов кухонь.
     """
@@ -123,6 +131,16 @@ def get_cuisine_keyboard(selected: list, options: list):
         ]
         for option in options
     ]
+    
+    all_selected = len(selected) == len(options)
+    
+    buttons.append([
+        InlineKeyboardButton(
+            text=f"{'\u2705 Снять все отметки' if all_selected else '☐ Выбрать все'}",
+            callback_data="toggle_cuisine:all"
+        )
+    ])
+    
     buttons.append([
         InlineKeyboardButton(
             text="\U0001F197 Подтвердить выбор", 
