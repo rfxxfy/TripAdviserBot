@@ -1,8 +1,8 @@
+import time
 import psycopg2
 from psycopg2.extras import DictCursor
 from contextlib import contextmanager
 from .db_config import DB_CONFIG
-
 
 @contextmanager
 def get_connection():
@@ -16,6 +16,7 @@ def get_connection():
 @contextmanager
 def get_cursor(commit=False):
     """Контекстный менеджер для курсора"""
+    start_time = time.time()
     with get_connection() as conn:
         cursor = conn.cursor(cursor_factory=DictCursor)
         try:
@@ -24,8 +25,11 @@ def get_cursor(commit=False):
                 conn.commit()
         finally:
             cursor.close()
+    elapsed_time = time.time() - start_time
+    print(f"[DB] Запрос выполнен за {elapsed_time:.4f} секунд")
 
 def register_user(user_id, username=None, first_name=None, last_name=None):
+    start_time = time.time()
     """
     Регистрирует пользователя в базе данных.
     Если пользователь уже существует, обновляет его данные.
@@ -54,7 +58,7 @@ def register_user(user_id, username=None, first_name=None, last_name=None):
             (user_id, username, first_name, last_name)
         )
         return cursor.fetchone()[0]
-
+    print(f"[DB] register_user выполнен за {time.time() - start_time:.4f} секунд")
 
 def start_session(user_id):
     """
