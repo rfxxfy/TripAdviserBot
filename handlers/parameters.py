@@ -10,15 +10,24 @@ from aiogram.fsm.context import FSMContext
 from states.travel_states import TravelForm
 from keyboards.inline_keyboards import get_photo_locations_keyboard, get_back_to_main_keyboard, PHOTO_OPTIONS, CUISINE_OPTIONS, get_cuisine_keyboard
 from LLM.llm import generate_route
+from database.db import start_session, save_route_parameters, complete_session, save_location, save_photo_location, save_cuisine
 
 async def start_parameter_collection(
         callback: types.CallbackQuery,
         selected_routes: dict,
         state: FSMContext):
     """
-    Сохраняет выбранные маршруты и формирует порядок вопросов
-    Затем запрашивает у пользователя геопозицию/адрес отправления
+    Сохраняет выбранные маршруты и формирует порядок вопросов.
+    Затем запрашивает у пользователя геопозицию/адрес отправления.
     """
+
+    data = await state.get_data()
+    session_id = data.get("session_id")
+    if not session_id:
+        session_id = start_session(callback.from_user.id)
+        await state.update_data(session_id=session_id)
+        print(f"Session_id установлен: {session_id}")
+    
     questions_order = ["location", "budget", "days"]
     if selected_routes.get("photo"):
         questions_order.append("photo")
@@ -101,8 +110,9 @@ async def process_location(message: types.Message, state: FSMContext):
         await state.update_data(location=location)
         
         if session_id:
-            from database.db import save_location
             save_location(session_id, "Координаты", lat, lon)
+        else:
+             print("Ошибка (локация): session_id отсутствует!")
         
         data = await state.get_data()
         question_index = data.get("question_index", 0) + 1
@@ -128,8 +138,9 @@ async def process_location(message: types.Message, state: FSMContext):
             await state.update_data(location=location)
             
             if session_id:
-                from database.db import save_location
                 save_location(session_id, text_input, lat, lon)
+            else:
+                print("Ошибка (локация): session_id отсутствует!")
             
             data = await state.get_data()
             question_index = data.get("question_index", 0) + 1
@@ -149,8 +160,9 @@ async def process_location(message: types.Message, state: FSMContext):
     await state.update_data(location=location, coords=coords)
     
     if session_id:
-        from database.db import save_location
         save_location(session_id, text_input, coords[0], coords[1])
+    else:
+        print("Ошибка (локация): session_id отсутствует!")
     
     data = await state.get_data()
     question_index = data.get("question_index", 0) + 1
@@ -219,9 +231,10 @@ async def confirm_photo_locations(callback: types.CallbackQuery, state: FSMConte
     session_id = data.get("session_id")
     
     if session_id:
-        from database.db import save_photo_location
         for location_type in photo_locations:
             save_photo_location(session_id, location_type)
+    else:
+        print("Ошибка (фото): session_id отсутствует!")
     
     question_index = data.get("question_index", 0) + 1
     await state.update_data(question_index=question_index)
@@ -271,7 +284,6 @@ async def confirm_cuisine(callback: types.CallbackQuery, state: FSMContext):
     session_id = data.get("session_id")
     
     if session_id:
-        from database.db import save_cuisine
         for cuisine_type in cuisine_options:
             save_cuisine(session_id, cuisine_type)
     
@@ -316,7 +328,6 @@ async def finish_parameters_collection(message: types.Message, state: FSMContext
     days = data.get("days", "не указано")
     
     if session_id:
-        from database.db import save_route_parameters, complete_session
         save_route_parameters(session_id, budget, days)
         complete_session(session_id)
 
