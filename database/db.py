@@ -13,6 +13,25 @@ def get_connection():
     finally:
         conn.close()
 
+def save_feedback(user_id, feedback_text):
+    """
+    Сохраняет отзыв пользователя в базу данных.
+    
+    :param user_id: ID пользователя, оставившего отзыв
+    :param feedback_text: Текст отзыва
+    :return: ID созданной записи с отзывом
+    """
+    with get_cursor(commit=True) as cursor:
+        cursor.execute(
+            """
+            INSERT INTO feedback (user_id, feedback_text)
+            VALUES (%s, %s)
+            RETURNING feedback_id
+            """,
+            (user_id, feedback_text)
+        )
+        return cursor.fetchone()[0]
+
 @contextmanager
 def get_cursor(commit=False):
     """Контекстный менеджер для курсора"""

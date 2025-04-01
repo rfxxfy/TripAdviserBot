@@ -40,6 +40,10 @@ dp.message.register(
     parameters.process_days,
     StateFilter(TravelForm.waiting_for_days)
 )
+dp.message.register(
+    feedback.process_feedback,
+    StateFilter(TravelForm.waiting_for_feedback)
+)
 dp.callback_query.register(
     parameters.toggle_photo_locations,
     F.data.startswith("toggle_photo_location"),
