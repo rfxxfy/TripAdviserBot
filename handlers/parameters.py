@@ -402,11 +402,12 @@ async def finish_parameters_collection(message: types.Message, state: FSMContext
         preferences=user_preferences,
         route_type=route_type_str,
         days=int(days),
-        budget=float(budget)
+        budget=float(budget),
+        is_first_time=True 
 )
 
 
-    await message.answer(llm_reply)
+    await message.answer(llm_reply, parse_mode="HTML")
 
     await state.clear()
 
