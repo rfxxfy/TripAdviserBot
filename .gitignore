@@ -5,3 +5,4 @@ __pycache__
 *.pyo
 db.env
 database/db_config.py
+*.DS_Store

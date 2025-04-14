@@ -116,6 +116,31 @@ def get_photo_locations_keyboard(selected: list, options: list):
     ])
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
+def get_first_time_keyboard():
+    """
+    Создает клавиатуру для вопроса "Первый раз в городе?"
+    """
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="✅ Да, первый раз", callback_data="first_time:yes"
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text="❌ Нет, уже был(а) здесь", callback_data="first_time:no"
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    text="↩️ Вернуться в главное меню", callback_data="back_to_main"
+                )
+            ],
+        ]
+    )
+    return keyboard
+
 def get_cuisine_keyboard(selected: list, options: list):
     """
     Формирует клавиатуру для мультивыбора кухонь.

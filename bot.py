@@ -64,6 +64,16 @@ dp.callback_query.register(
     F.data == "confirm_cuisine",
     StateFilter(TravelForm.waiting_for_cuisine)
 )
+dp.callback_query.register(
+    parameters.process_first_time,
+    F.data.startswith("first_time:"),
+    StateFilter(TravelForm.waiting_for_first_time)
+)
+dp.message.register(
+    currency.process_currency_location,
+    StateFilter(TravelForm.waiting_for_currency_location),
+    F.content_type.in_(["text", "location"])
+)
 dp.message.register(
     parameters.finish_parameters_collection,
     StateFilter(TravelForm.waiting_for_photo_locations, TravelForm.waiting_for_cuisine)

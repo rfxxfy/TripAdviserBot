@@ -8,7 +8,7 @@ from loader import rag_service
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.fsm.context import FSMContext
 from states.travel_states import TravelForm
-from keyboards.inline_keyboards import get_photo_locations_keyboard, get_back_to_main_keyboard, PHOTO_OPTIONS, CUISINE_OPTIONS, get_cuisine_keyboard
+from keyboards.inline_keyboards import get_photo_locations_keyboard, get_back_to_main_keyboard, PHOTO_OPTIONS, CUISINE_OPTIONS, get_cuisine_keyboard, get_first_time_keyboard
 from LLM.llm import generate_route
 from database.db import start_session, save_route_parameters, complete_session, save_location, save_photo_location, save_cuisine
 
@@ -28,7 +28,7 @@ async def start_parameter_collection(
         await state.update_data(session_id=session_id)
         print(f"Session_id установлен: {session_id}")
     
-    questions_order = ["location", "budget", "days"]
+    questions_order = ["location", "budget", "days","first_time"]
     if selected_routes.get("photo"):
         questions_order.append("photo")
     if selected_routes.get("food"):
@@ -91,6 +91,12 @@ async def ask_next_question(message: types.Message, state: FSMContext):
     elif next_question == "days":
         await message.answer("📆 Сколько дней вы планируете путешествовать?")
         await state.set_state(TravelForm.waiting_for_days)
+    elif next_question == "first_time":
+        await message.answer(
+            "🏙️ Вы впервые посещаете этот город?",
+            reply_markup=get_first_time_keyboard()
+        )
+        await state.set_state(TravelForm.waiting_for_first_time)
     else:
         await finish_parameters_collection(message, state)
 
@@ -327,6 +333,29 @@ async def process_days(message: types.Message, state: FSMContext):
     await state.update_data(question_index=question_index)
     await ask_next_question(message, state)
 
+async def process_first_time(callback: types.CallbackQuery, state: FSMContext):
+    """
+    Обрабатывает ответ пользователя на вопрос о первом посещении города.
+    """
+    if ":" not in callback.data:
+        await callback.answer("Ошибка в callback data")
+        return
+    
+    action, answer = callback.data.split(":", 1)
+    if action != "first_time":
+        await callback.answer("Ошибка в обработке callback.")
+        return
+    
+    is_first_time = answer == "yes"
+    await state.update_data(is_first_time=is_first_time)
+    
+    data = await state.get_data()
+    question_index = data.get("question_index", 0) + 1
+    await state.update_data(question_index=question_index)
+    await callback.message.edit_reply_markup(reply_markup=None)
+    await callback.answer("Спасибо за ответ!")
+    await ask_next_question(callback.message, state)
+
 async def finish_parameters_collection(message: types.Message, state: FSMContext):
     """
     Завершает сбор параметров:
@@ -343,6 +372,7 @@ async def finish_parameters_collection(message: types.Message, state: FSMContext
     photo_locations = data.get("photo_locations", [])
     cuisine_options = data.get("cuisine_options", [])
     days = data.get("days", "не указано")
+    is_first_time = data.get("is_first_time", True)
     
     if session_id:
         save_route_parameters(session_id, budget, days)
@@ -403,7 +433,7 @@ async def finish_parameters_collection(message: types.Message, state: FSMContext
         route_type=route_type_str,
         days=int(days),
         budget=float(budget),
-        is_first_time=True 
+        is_first_time=is_first_time
 )
 
 
