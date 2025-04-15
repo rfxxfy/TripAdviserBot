@@ -14,7 +14,7 @@ client = openai.OpenAI(
     base_url="https://hubai.loe.gg/v1"
 )
 
-DEFAULT_MODEL = "gpt-3.5-turbo"
+DEFAULT_MODEL = "gpt-4-turbo"
 
 def get_city_and_country_from_coords(lat: float, lon: float) -> tuple[str, str]:
     """
