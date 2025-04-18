@@ -1,8 +1,11 @@
 import time
+import logging
 import psycopg2
 from psycopg2.extras import DictCursor
 from contextlib import contextmanager
-from .db_config import DB_CONFIG
+from database.db_config import DB_CONFIG
+
+logger = logging.getLogger(__name__)
 
 @contextmanager
 def get_connection():
@@ -13,14 +16,26 @@ def get_connection():
     finally:
         conn.close()
 
+@contextmanager
+def get_cursor(commit: bool = False):
+    """
+    Контекстный менеджер для курсора.
+    Логирует время выполнения каждого запроса.
+    """
+    start_time = time.time()
+    with get_connection() as conn:
+        cursor = conn.cursor(cursor_factory=DictCursor)
+        try:
+            yield cursor
+            if commit:
+                conn.commit()
+        finally:
+            cursor.close()
+            elapsed = time.time() - start_time
+            logger.info(f"[DB] Запрос выполнен за {elapsed:.4f} секунд")
+
+
 def save_feedback(user_id, feedback_text):
-    """
-    Сохраняет отзыв пользователя в базу данных.
-    
-    :param user_id: ID пользователя, оставившего отзыв
-    :param feedback_text: Текст отзыва
-    :return: ID созданной записи с отзывом
-    """
     with get_cursor(commit=True) as cursor:
         cursor.execute(
             """
@@ -32,35 +47,10 @@ def save_feedback(user_id, feedback_text):
         )
         return cursor.fetchone()[0]
 
-@contextmanager
-def get_cursor(commit=False):
-    """Контекстный менеджер для курсора"""
-    start_time = time.time()
-    with get_connection() as conn:
-        cursor = conn.cursor(cursor_factory=DictCursor)
-        try:
-            yield cursor
-            if commit:
-                conn.commit()
-        finally:
-            cursor.close()
-    elapsed_time = time.time() - start_time
-    print(f"[DB] Запрос выполнен за {elapsed_time:.4f} секунд")
 
 def register_user(user_id, username=None, first_name=None, last_name=None):
-    start_time = time.time()
     """
-    Регистрирует пользователя в базе данных.
-    Если пользователь уже существует, обновляет его данные.
-
-    Parameters:
-    - user_id (int): Уникальный идентификатор пользователя.
-    - username (str, optional): Имя пользователя (никнейм).
-    - first_name (str, optional): Имя.
-    - last_name (str, optional): Фамилия.
-
-    Returns:
-    - int: user_id зарегистрированного пользователя.
+    Регистрирует или обновляет пользователя.
     """
     with get_cursor(commit=True) as cursor:
         cursor.execute(
@@ -68,7 +58,7 @@ def register_user(user_id, username=None, first_name=None, last_name=None):
             INSERT INTO users (user_id, username, first_name, last_name)
             VALUES (%s, %s, %s, %s)
             ON CONFLICT (user_id) DO UPDATE
-            SET last_activity = CURRENT_TIMESTAMP, 
+            SET last_activity = CURRENT_TIMESTAMP,
                 username = EXCLUDED.username,
                 first_name = EXCLUDED.first_name,
                 last_name = EXCLUDED.last_name
@@ -76,19 +66,11 @@ def register_user(user_id, username=None, first_name=None, last_name=None):
             """,
             (user_id, username, first_name, last_name)
         )
-        return cursor.fetchone()[0]
-    print(f"[DB] register_user выполнен за {time.time() - start_time:.4f} секунд")
+        user = cursor.fetchone()[0]
+    return user
+
 
 def start_session(user_id):
-    """
-    Начинает новую сессию для пользователя и сохраняет её в базе данных.
-
-    Parameters:
-    - user_id (int): Уникальный идентификатор пользователя, для которого создается сессия.
-
-    Returns:
-    - session_id (int): Уникальный идентификатор созданной сессии.
-    """
     with get_cursor(commit=True) as cursor:
         cursor.execute(
             """
@@ -98,18 +80,11 @@ def start_session(user_id):
             """,
             (user_id,)
         )
-        return cursor.fetchone()[0]
+        session_id = cursor.fetchone()[0]
+    return session_id
+
 
 def complete_session(session_id):
-    """
-    Завершает сессию пользователя, фиксируя время окончания и помечая сессию завершенной.
-
-    :param session_id: Уникальный идентификатор сессии, которую необходимо завершить.
-    :type session_id: int
-
-    :return: Ничего не возвращает, обновляет данные в базе.
-    :rtype: None
-    """
     with get_cursor(commit=True) as cursor:
         cursor.execute(
             """
@@ -119,7 +94,6 @@ def complete_session(session_id):
             """,
             (session_id,)
         )
-
 
 def save_route_selection(session_id, route_type, selected):
     """
@@ -288,6 +262,38 @@ def get_popular_departure_cities(limit=10):
             GROUP BY departure_city
             ORDER BY count DESC
             LIMIT %s;
+            """,
+            (limit,)
+        )
+        return cursor.fetchall()
+
+
+def is_user_admin(user_id: int) -> bool:
+    with get_cursor() as cursor:
+        cursor.execute(
+            "SELECT is_admin FROM users WHERE user_id = %s",
+            (user_id,)
+        )
+        result = cursor.fetchone()
+    return bool(result and result.get("is_admin", False))
+
+
+def set_user_admin(target_user_id: int, is_admin: bool = True):
+    with get_cursor(commit=True) as cursor:
+        cursor.execute(
+            "UPDATE users SET is_admin = %s WHERE user_id = %s",
+            (is_admin, target_user_id)
+        )
+
+
+def get_all_users(limit: int = 100):
+    with get_cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT user_id, username, first_name, last_name, is_admin
+            FROM users
+            ORDER BY first_seen DESC
+            LIMIT %s
             """,
             (limit,)
         )

@@ -1,21 +1,31 @@
 import asyncio
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)-8s | %(name)s:%(lineno)d | %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+    handlers=[
+        logging.FileHandler("bot.log", encoding="utf-8", mode="a"),
+        logging.StreamHandler()
+    ]
+)
+
 from aiogram import F, types
 from aiogram.filters import Command, StateFilter
 from loader import dp, bot
-from handlers import start, routes, currency, info, parameters, feedback, fallback
+from handlers import start, routes, currency, info, parameters, feedback, fallback, admin
 from commands import set_bot_commands
 from middlewares.db_middleware import DatabaseMiddleware
 from states.travel_states import TravelForm
 
-# Регистрация команды /start – запуск диалога с пользователем.
 dp.message.register(start.welcome, Command("start"))
 
-# Регистрация callback-хендлеров для основных команд бота.
 dp.callback_query.register(routes.route_builder, F.data == "build_route")
 dp.callback_query.register(currency.currency_exchange, F.data == "currency_exchange")
 dp.callback_query.register(info.bot_info, F.data == "bot_info")
 dp.callback_query.register(routes.confirm_routes_callback, F.data == "confirm_routes")
-dp.callback_query.register(routes.back_to_main_callback, F.data == "back_to_main")
+dp.callback_query.register(start.back_to_main_callback, F.data == "back_to_main")
 dp.callback_query.register(feedback.feedback_handler, F.data == "feedback")
 dp.callback_query.register(
     routes.toggle_route_callback,
@@ -26,7 +36,19 @@ dp.callback_query.register(
     )
 )
 
+# Регистрация callback-хендлеров для админских команд
+dp.callback_query.register(admin.show_admin_menu, F.data == "admin_menu")
+dp.callback_query.register(admin.view_logs,      F.data == "view_logs")
+dp.callback_query.register(admin.clear_logs,     F.data == "clear_logs")
+dp.callback_query.register(admin.view_users,     F.data == "view_users")
+dp.callback_query.register(admin.make_admin,     F.data == "make_admin")
+
 # Регистрация хендлеров для состояний (FSM) сбора параметров.
+dp.message.register(
+    admin.process_set_admin,
+    StateFilter(TravelForm.waiting_for_admin_id),
+    F.content_type.in_(["text"])
+)
 dp.message.register(
     parameters.process_location,
     StateFilter(TravelForm.waiting_for_location),

@@ -13,3 +13,4 @@ class TravelForm(StatesGroup):
     waiting_for_feedback = State()
     waiting_for_first_time = State()
     waiting_for_currency_location = State()
+    waiting_for_admin_id = State()

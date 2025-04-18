@@ -6,3 +6,4 @@ __pycache__
 db.env
 database/db_config.py
 *.DS_Store
+bot.log

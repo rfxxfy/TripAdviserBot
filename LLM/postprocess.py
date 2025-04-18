@@ -4,9 +4,7 @@ import requests
 import urllib.parse
 from typing import List, Tuple, Optional
 from handlers.maps import generate_yandex_map_link, generate_yandex_map_link_from_names, extract_coords_blocks
-
-with open("tokens/yandex_api_key.txt", "r", encoding="utf-8") as f:
-    YANDEX_API_KEY = f.read().strip()
+from config import YANDEX_API_KEY
 
 PLACE_NAME_OVERRIDES = {
     "Ботанический сад Дворца пионеров": "ул. Косыгина, 17, Москва, 119333",

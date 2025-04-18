@@ -83,13 +83,3 @@ async def confirm_routes_callback(callback: types.CallbackQuery, state: FSMConte
 
     await state.update_data(selected_routes=routes)
     await parameters.start_parameter_collection(callback, routes, state)
-
-async def back_to_main_callback(callback: types.CallbackQuery):
-    """
-    Возвращает пользователя в главное меню.
-
-    :param callback: Callback-запрос от нажатой кнопки.
-    """
-    await callback.message.edit_reply_markup(reply_markup=None)
-    await welcome(callback.message)
-    await callback.answer()
