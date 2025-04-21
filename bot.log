@@ -1,9 +1,0 @@
-2025-04-21 19:59:31 | INFO     | aiogram.dispatcher:527 | Start polling
-2025-04-21 19:59:31 | INFO     | aiogram.dispatcher:341 | Run polling for bot @AIJourneyPlannerBot id=7619177339 - 'Journey Planner'
-2025-04-21 19:59:33 | INFO     | database.db:35 | [DB] Запрос выполнен за 1.2100 секунд
-2025-04-21 19:59:33 | INFO     | database.db:35 | [DB] Запрос выполнен за 0.5611 секунд
-2025-04-21 19:59:34 | INFO     | database.db:35 | [DB] Запрос выполнен за 0.4805 секунд
-2025-04-21 19:59:34 | INFO     | aiogram.event:172 | Update id=523895678 is handled. Duration 2799 ms by bot id=7619177339
-2025-04-21 19:59:38 | WARNING  | aiogram.dispatcher:455 | Received SIGINT signal
-2025-04-21 19:59:38 | INFO     | aiogram.dispatcher:359 | Polling stopped for bot @AIJourneyPlannerBot id=7619177339 - 'Journey Planner'
-2025-04-21 19:59:38 | INFO     | aiogram.dispatcher:554 | Polling stopped

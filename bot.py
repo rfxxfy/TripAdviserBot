@@ -1,6 +1,6 @@
 import asyncio
 from helpers.logger import setup_logging
-setup_logging(logfile="bot.log")
+setup_logging(logfile="data/bot.log")
 
 from aiogram import F, types
 from aiogram.filters import Command, StateFilter
