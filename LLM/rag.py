@@ -1,5 +1,3 @@
-# LLM/rag.py
-
 from typing import List, Tuple, Optional
 from API.overpass_api import OverpassAPI
 from API.osrm_api import OSRMAPI
@@ -67,7 +65,20 @@ class RAGService:
         for i, el in enumerate(pois[:20], 1):
             tags = el.get("tags", {})
             name = tags.get("name")
-            coord = (el.get("lat"), el.get("lon"))
+            # Определяем координаты точки
+            coord = None
+            if el.get("type") == "node":
+                lat = el.get("lat")
+                lon = el.get("lon")
+                coord = (lat, lon) if lat is not None and lon is not None else None
+            else:
+                center = el.get("center") or {}
+                lat = center.get("lat")
+                lon = center.get("lon")
+                coord = (lat, lon) if lat is not None and lon is not None else None
+            if not coord:
+                continue
+
             route = self.osrm.get_route(user_coords, coord)
             info = ""
             if route.get("routes"):
