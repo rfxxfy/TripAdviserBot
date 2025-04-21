@@ -1,4 +1,3 @@
-tokens
 .idea
 __pycache__
 *.pyc
@@ -6,4 +5,5 @@ __pycache__
 db.env
 database/db_config.py
 *.DS_Store
-bot.log
+.env
+data

@@ -1,4 +1,5 @@
 import re
+from helpers.validators import is_valid_coordinate
 from aiogram import types
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.fsm.context import FSMContext
@@ -126,22 +127,20 @@ async def process_location(message: types.Message, state: FSMContext):
         save_location(session_id, "Координаты", lat, lon)
     else:
         text = message.text.strip()
-        m = re.match(r'^(-?\d+(\.\d+)?)[,\s]+(-?\d+(\.\d+)?)$', text)
-        if m:
-            lat = float(m.group(1).replace(',', '.'))
-            lon = float(m.group(3).replace(',', '.'))
-            loc = f"{lat}, {lon}"
+        if is_valid_coordinate(text):
+            lat, lon = re.split(r'[,\s]+', text)
+            loc = (float(lat), float(lon))
             await state.update_data(location=loc)
             save_location(session_id, text, lat, lon)
         else:
-            coords = rag_service.get_coordinates(text)
-            if not coords:
+            cords = rag_service.get_coordinates(text)
+            if not cords:
                 await message.answer(
                     "🚨 Не удалось найти место. Попробуйте точнее или отправьте геолокацию."
                 )
                 return
-            await state.update_data(location=text, coords=coords)
-            save_location(session_id, text, coords[0], coords[1])
+            await state.update_data(location=text, coords=cords)
+            save_location(session_id, text, cords[0], cords[1])
 
     await state.update_data(question_index=data.get("question_index", 0) + 1)
     await ask_next_question(message, state)

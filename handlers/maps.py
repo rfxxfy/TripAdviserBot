@@ -1,6 +1,6 @@
 import re
 import urllib.parse
-from geopy.distance import geodesic
+from helpers.geo_utils import haversine
 
 def determine_transport_type(coords: list[tuple[float, float]]) -> str:
     """
@@ -10,7 +10,7 @@ def determine_transport_type(coords: list[tuple[float, float]]) -> str:
     """
     if len(coords) < 2:
         return "tt"
-    total_dist = sum(geodesic(coords[i], coords[i+1]).km for i in range(len(coords)-1))
+    total_dist = sum(haversine(coords[i], coords[i + 1]) for i in range(len(coords) - 1))
     return "mt" if total_dist > 4 else "tt"
 
 def generate_yandex_map_link(coords: list[tuple[float, float]]) -> str:

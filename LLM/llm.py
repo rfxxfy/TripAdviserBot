@@ -1,20 +1,17 @@
 import openai
 from LLM.rag import RAGService
 from LLM.validator import validate_route_content
-from handlers.maps import generate_yandex_map_link
 from geopy.geocoders import Nominatim
+from config import API_KEY
 
 rag_service = RAGService()
 
-with open("tokens/ai_token.txt", "r", encoding="utf-8") as f:
-    HUBAI_API_KEY = f.read().strip()
-
 client = openai.OpenAI(
-    api_key=HUBAI_API_KEY,
+    api_key=API_KEY,
     base_url="https://hubai.loe.gg/v1"
 )
 
-DEFAULT_MODEL = "gpt-4-turbo"
+DEFAULT_MODEL = "gpt-3.5-turbo"
 
 def get_city_and_country_from_coords(lat: float, lon: float) -> tuple[str, str]:
     """

@@ -7,6 +7,7 @@ from loader import rag_service
 from API.overpass_api import OverpassAPI
 from database.db import save_location
 from keyboards.inline_keyboards import get_back_to_main_keyboard
+from helpers.validators import is_valid_coordinate
 
 async def currency_exchange(callback: types.CallbackQuery, state: FSMContext):
     await callback.message.edit_reply_markup(reply_markup=None)
@@ -25,30 +26,29 @@ async def currency_exchange(callback: types.CallbackQuery, state: FSMContext):
     await callback.answer()
 
 async def process_currency_location(message: types.Message, state: FSMContext):
-    coords = None
+    cords = None
     if message.location:
-        coords = (message.location.latitude, message.location.longitude)
-        loc = f"{coords[0]}, {coords[1]}"
+        cords = (message.location.latitude, message.location.longitude)
+        loc = f"{cords[0]}, {cords[1]}"
     else:
         text = message.text.strip()
-        m = re.match(r'^(-?\d+(\.\d+)?)[,\s]+(-?\d+(\.\d+)?)$', text)
-        if m:
-            coords = (float(m.group(1).replace(',', '.')), float(m.group(3).replace(',', '.')))
-            loc = text
+        if is_valid_coordinate(text):
+            lat_str, lon_str = re.split(r'[,\s]+', text)
+            cords = (float(lat_str), float(lon_str))
         else:
-            coords = rag_service.get_coordinates(text)
-            loc = text if coords else None
+            cords = rag_service.get_coordinates(text)
+            loc = text if cords else None
 
-    if not coords:
+    if not cords:
         await message.answer("🚨 Не удалось определить местоположение.")
         return
 
     session_id = (await state.get_data()).get("session_id")
-    save_location(session_id, loc, coords[0], coords[1])
+    save_location(session_id, loc, cords[0], cords[1])
 
     overpass = OverpassAPI()
-    elems = overpass.search_poi_in_radius(coords[0], coords[1], 3000, "amenity", "bank", limit=10).get("elements", [])
-    banks = [b for b in elems if b.get("tags", {}).get("name")]
+    elms = overpass.search_poi_in_radius(cords[0], cords[1], 3000, "amenity", "bank", limit=10).get("elements", [])
+    banks = [b for b in elms if b.get("tags", {}).get("name")]
 
     if not banks:
         await message.answer("❌ Банки не найдены поблизости.", reply_markup=ReplyKeyboardRemove())
@@ -61,7 +61,7 @@ async def process_currency_location(message: types.Message, state: FSMContext):
             lon = b.get("lon") or b.get("center", {}).get("lon")
             addr = f"{tags.get('addr:street','')} {tags.get('addr:housenumber','')}".strip()
             hours = tags.get("opening_hours", "")
-            route = f"https://yandex.ru/maps/?rtext={coords[0]},{coords[1]}~{lat},{lon}&rtt=pd"
+            route = f"https://yandex.ru/maps/?rtext={cords[0]},{cords[1]}~{lat},{lon}&rtt=pd"
             text += f"{i}. *{name}*\n"
             if addr: text += f"   📍 {addr}\n"
             if hours: text += f"   🕒 {hours}\n"

@@ -1,8 +1,5 @@
-with open("tokens/token.txt", "r") as f:
-    TOKEN = f.read().strip()
+from helpers.config import get_env
 
-with open("tokens/ai_token.txt", "r") as f:
-    API_KEY = f.read().strip()
-
-with open("tokens/yandex_api_key.txt", "r", encoding="utf-8") as f:
-    YANDEX_API_KEY = f.read().strip()
+TOKEN          = get_env("TOKEN")
+API_KEY        = get_env("API_KEY")
+YANDEX_API_KEY = get_env("YANDEX_API_KEY")

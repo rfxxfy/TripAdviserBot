@@ -1,15 +1,6 @@
 import asyncio
-import logging
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s | %(levelname)-8s | %(name)s:%(lineno)d | %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-    handlers=[
-        logging.FileHandler("bot.log", encoding="utf-8", mode="a"),
-        logging.StreamHandler()
-    ]
-)
+from helpers.logger import setup_logging
+setup_logging(logfile="bot.log")
 
 from aiogram import F, types
 from aiogram.filters import Command, StateFilter
@@ -36,14 +27,13 @@ dp.callback_query.register(
     )
 )
 
-# Регистрация callback-хендлеров для админских команд
+# админские
 dp.callback_query.register(admin.show_admin_menu, F.data == "admin_menu")
 dp.callback_query.register(admin.view_logs,      F.data == "view_logs")
 dp.callback_query.register(admin.clear_logs,     F.data == "clear_logs")
 dp.callback_query.register(admin.view_users,     F.data == "view_users")
 dp.callback_query.register(admin.make_admin,     F.data == "make_admin")
 
-# Регистрация хендлеров для состояний (FSM) сбора параметров.
 dp.message.register(
     admin.process_set_admin,
     StateFilter(TravelForm.waiting_for_admin_id),
