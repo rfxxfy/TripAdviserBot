@@ -59,7 +59,7 @@ async def process_currency_location(message: types.Message, state: FSMContext):
         await message.answer("❌ Банки не найдены поблизости.", reply_markup=ReplyKeyboardRemove())
     else:
         text = "🏦 Найденные банки:\n\n"
-        for i, b in enumerate(banks, 1):
+        for i, b in enumerate(banks[:10], 1):
             tags = b.get("tags", {})
             name = tags.get("name", "Без названия")
             lat = b.get("lat") or b.get("center", {}).get("lat")
