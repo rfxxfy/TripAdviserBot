@@ -7,7 +7,7 @@ from loader import rag_service
 from API.overpass_api import OverpassAPI
 from database.db import save_location
 from keyboards.inline_keyboards import get_back_to_main_keyboard
-from helpers.validators import is_valid_coordinate
+
 
 async def currency_exchange(callback: types.CallbackQuery, state: FSMContext):
     await callback.message.edit_reply_markup(reply_markup=None)
@@ -25,49 +25,62 @@ async def currency_exchange(callback: types.CallbackQuery, state: FSMContext):
     await state.set_state(TravelForm.waiting_for_currency_location)
     await callback.answer()
 
+
 async def process_currency_location(message: types.Message, state: FSMContext):
-    cords = None
+    coords = None
+    loc = None
     if message.location:
-        cords = (message.location.latitude, message.location.longitude)
-        loc = f"{cords[0]}, {cords[1]}"
+        coords = (message.location.latitude, message.location.longitude)
+        loc = f"{coords[0]}, {coords[1]}"
     else:
         text = message.text.strip()
-        if is_valid_coordinate(text):
-            lat_str, lon_str = re.split(r'[,\s]+', text)
-            cords = (float(lat_str), float(lon_str))
+        if re.match(r'^-?\d+(?:\.\d+)?[,\s]+-?\d+(?:\.\d+)?$', text):
+            parts = re.split(r"[\s,]+", text)
+            coords = (float(parts[0]), float(parts[1]))
+            loc = text
         else:
-            cords = rag_service.get_coordinates(text)
-            loc = text if cords else None
+            coords = rag_service.get_coordinates(text)
+            loc = text if coords else None
 
-    if not cords:
+    if not coords:
         await message.answer("🚨 Не удалось определить местоположение.")
         return
 
-    session_id = (await state.get_data()).get("session_id")
-    save_location(session_id, loc, cords[0], cords[1])
+    data = await state.get_data()
+    session_id = data.get("session_id")
+    if session_id:
+        save_location(session_id, loc, coords[0], coords[1])
 
     overpass = OverpassAPI()
-    elms = overpass.search_poi_in_radius(cords[0], cords[1], 3000, "amenity", "bank", limit=10).get("elements", [])
-    banks = [b for b in elms if b.get("tags", {}).get("name")]
+    elems = overpass.search_poi_in_radius(coords[0], coords[1], 3000, "amenity", "bank", limit=10)
+    banks = [b for b in elems if b.get("tags", {}).get("name")]
 
     if not banks:
         await message.answer("❌ Банки не найдены поблизости.", reply_markup=ReplyKeyboardRemove())
     else:
         text = "🏦 Найденные банки:\n\n"
         for i, b in enumerate(banks, 1):
-            tags = b["tags"]
+            tags = b.get("tags", {})
             name = tags.get("name", "Без названия")
             lat = b.get("lat") or b.get("center", {}).get("lat")
             lon = b.get("lon") or b.get("center", {}).get("lon")
             addr = f"{tags.get('addr:street','')} {tags.get('addr:housenumber','')}".strip()
             hours = tags.get("opening_hours", "")
-            route = f"https://yandex.ru/maps/?rtext={cords[0]},{cords[1]}~{lat},{lon}&rtt=pd"
+            route = f"https://yandex.ru/maps/?rtext={coords[0]},{coords[1]}~{lat},{lon}&rtt=pd"
             text += f"{i}. *{name}*\n"
-            if addr: text += f"   📍 {addr}\n"
-            if hours: text += f"   🕒 {hours}\n"
+            if addr:
+                text += f"   📍 {addr}\n"
+            if hours:
+                text += f"   🕒 {hours}\n"
             text += f"   🚶 [Маршрут]({route})\n\n"
+
         for chunk in [text[j:j+4000] for j in range(0, len(text), 4000)]:
-            await message.answer(chunk, parse_mode="Markdown", disable_web_page_preview=True, reply_markup=ReplyKeyboardRemove())
+            await message.answer(
+                chunk,
+                parse_mode="Markdown",
+                disable_web_page_preview=True,
+                reply_markup=ReplyKeyboardRemove()
+            )
 
     await message.answer(
         "Для возврата в главное меню нажмите:",
